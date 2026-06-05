@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JiaHong Yaoshi</title>
+    <style>
+      :root {
+        color: rgba(0, 0, 0, 0.88);
+        background: #f4f7fb;
+        font-family: "Microsoft YaHei", "PingFang SC", -apple-system,
+          BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+      }
+
+      main {
+        width: min(960px, calc(100% - 32px));
+        margin: 0 auto;
+        padding: 56px 0;
+      }
+
+      .hero,
+      .panel {
+        border: 1px solid #e5e8eb;
+        border-radius: 12px;
+        background: #ffffff;
+        box-shadow:
+          0 6px 16px -8px rgba(16, 42, 67, 0.08),
+          0 1px 3px rgba(16, 42, 67, 0.05);
+      }
+
+      .hero {
+        padding: 40px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: clamp(32px, 5vw, 54px);
+        line-height: 1.1;
+      }
+
+      .hero p {
+        max-width: 680px;
+        margin-top: 18px;
+        color: rgba(0, 0, 0, 0.62);
+        font-size: 17px;
+        line-height: 1.8;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 28px;
+      }
+
+      a {
+        display: inline-flex;
+        align-items: center;
+        min-height: 40px;
+        padding: 0 16px;
+        border-radius: 8px;
+        color: #1677ff;
+        background: #ebf3ff;
+        font-weight: 700;
+        text-decoration: none;
+      }
+
+      .panel-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
+        margin-top: 20px;
+      }
+
+      .panel {
+        padding: 22px;
+      }
+
+      .panel h2 {
+        font-size: 18px;
+      }
+
+      .panel p {
+        margin-top: 10px;
+        color: rgba(0, 0, 0, 0.58);
+        line-height: 1.7;
+      }
+
+      @media (max-width: 760px) {
+        main {
+          padding: 24px 0;
+        }
+
+        .hero {
+          padding: 28px;
+        }
+
+        .panel-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <h1>JiaHong Yaoshi</h1>
+        <p>
+          嘉虹药师端工作台，用于承接处方审核、处方流转、咨询协同和合规风险提示。当前仓库处于项目起步阶段，页面用于 GitHub Pages 占位与后续审阅。
+        </p>
+        <div class="actions">
+          <a href="https://github.com/Zengweihaooo/JiaHong_Yaoshi">GitHub 仓库</a>
+          <a href="https://github.com/Zengweihaooo/JiaHong-UI">JiaHong UI</a>
+        </div>
+      </section>
+
+      <section class="panel-grid" aria-label="规划模块">
+        <article class="panel">
+          <h2>处方审核</h2>
+          <p>查看医生提交处方，核对用药合理性并处理审核结论。</p>
+        </article>
+        <article class="panel">
+          <h2>处方流转</h2>
+          <p>跟踪处方状态、留痕记录和后续调配流程。</p>
+        </article>
+        <article class="panel">
+          <h2>咨询协同</h2>
+          <p>配合复诊、图文咨询和患者用药说明等协作场景。</p>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
