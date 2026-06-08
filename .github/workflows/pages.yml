@@ -38,12 +38,22 @@ jobs:
         with:
           node-version: 24
           cache: npm
-          cache-dependency-path: JiaHong_Yaoshi/package-lock.json
+          cache-dependency-path: |
+            JiaHong_UI/package-lock.json
+            JiaHong_Yaoshi/package-lock.json
 
-      - name: Install dependencies
+      - name: Install JiaHong UI dependencies
+        working-directory: JiaHong_UI
         run: npm ci
 
-      - name: Build
+      - name: Build JiaHong UI
+        working-directory: JiaHong_UI
+        run: npm run build
+
+      - name: Install pharmacist dependencies
+        run: npm ci
+
+      - name: Build pharmacist app
         run: npm run build:pages
         env:
           GITHUB_REPOSITORY: ${{ github.repository }}
