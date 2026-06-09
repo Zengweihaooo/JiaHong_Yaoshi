@@ -104,21 +104,10 @@ function spotStyle(spot) {
   border: 0;
   background: transparent;
   cursor: pointer;
-  transition: background 0.15s ease, box-shadow 0.15s ease;
-}
-
-.home-hotspot:hover {
-  background: rgba(0, 110, 249, 0.14);
-  box-shadow: inset 0 0 0 2px rgba(0, 110, 249, 0.45);
 }
 
 .home-hotspot:focus-visible {
-  background: rgba(0, 110, 249, 0.14);
   outline: 2px solid var(--jh-color-primary);
   outline-offset: 1px;
-}
-
-.home-hotspot:active {
-  background: rgba(0, 110, 249, 0.22);
 }
 </style>
