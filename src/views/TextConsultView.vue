@@ -26,7 +26,11 @@
         </header>
 
         <div class="tc-shell__body">
-          <section class="tc-chat" aria-label="问诊对话">
+          <section
+            class="tc-chat"
+            :class="{ 'tc-chat--decision': showDoctorFollowUp && !prescriptionReady && !consultCancelled }"
+            aria-label="问诊对话"
+          >
             <div ref="chatScrollRef" class="tc-chat-scroll">
               <p class="tc-chat-time">2026-01-13 16:38:21</p>
 
@@ -76,6 +80,7 @@
               </article>
 
               <div v-if="showDoctorFollowUp && !prescriptionReady && !consultCancelled" class="tc-decision">
+                <div class="tc-decision__label">请选择</div>
                 <button class="tc-decision-btn tc-decision-btn--ghost" type="button" @click="showCancelDialog = true">
                   信息有误，取消开方
                 </button>
@@ -114,10 +119,10 @@
               </button>
             </div>
 
-            <footer class="tc-reply">
+            <footer v-if="!showDoctorFollowUp || prescriptionReady || consultCancelled" class="tc-reply">
               <textarea placeholder="输入回复内容"></textarea>
               <div class="tc-reply__actions">
-                <button class="tc-image-action" type="button" aria-label="上传图片">▧</button>
+                <button class="tc-image-action" type="button" aria-label="上传图片"></button>
                 <button class="tc-quick-reply" type="button">快捷回复</button>
                 <button class="tc-send-btn" type="button">发送</button>
               </div>
@@ -289,7 +294,9 @@ onBeforeUnmount(() => {
   height: 54px;
   padding: 0 24px;
   border-bottom: 1px solid #eceef0;
-  background: #fff;
+  background:
+    radial-gradient(circle at 21px 13px, #697383 0 2px, transparent 2.5px),
+    #fff;
   box-shadow: 0 4px 12px rgba(24, 39, 75, 0.06);
 }
 
@@ -329,7 +336,9 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow: hidden;
   border-radius: 20px;
-  background: #fff;
+  background:
+    radial-gradient(circle at 20px 14px, #697383 0 1.5px, transparent 2px),
+    #fff;
   box-shadow: 0 8px 28px rgba(30, 41, 59, 0.12);
 }
 
@@ -394,6 +403,10 @@ onBeforeUnmount(() => {
   min-height: 0;
   overflow: hidden;
   background: #fafafa;
+}
+
+.tc-chat--decision {
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .tc-chat-scroll {
@@ -551,9 +564,34 @@ onBeforeUnmount(() => {
 
 .tc-decision {
   display: flex;
+  flex-wrap: wrap;
   justify-content: center;
   gap: 16px;
   margin: 32px 0 0;
+}
+
+.tc-decision__label {
+  position: relative;
+  flex: 0 0 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 8px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 28px;
+}
+
+.tc-decision__label::before,
+.tc-decision__label::after {
+  display: block;
+  width: 34%;
+  max-width: 340px;
+  height: 1px;
+  background: #d8dde1;
+  content: "";
 }
 
 .tc-decision-btn {
@@ -735,17 +773,44 @@ onBeforeUnmount(() => {
 }
 
 .tc-image-action {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: 1px solid #d8dde1;
+  width: 36px;
+  height: 36px;
+  border: 1.5px solid #d8dde1;
   border-radius: 50%;
-  color: #697383;
-  font-size: 18px;
   background: #fff;
   cursor: pointer;
+}
+
+.tc-image-action::before {
+  position: absolute;
+  width: 14px;
+  height: 12px;
+  border: 2px solid #697383;
+  border-radius: 2px;
+  content: "";
+}
+
+.tc-image-action::after {
+  position: absolute;
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid #697383;
+  border-bottom: 2px solid #697383;
+  transform: translateY(3px) rotate(135deg) skew(8deg, 8deg);
+  content: "";
+}
+
+.tc-image-action:hover {
+  border-color: #c8d0d9;
+}
+
+.tc-image-action span,
+.tc-image-action i {
+  display: none;
 }
 
 .tc-quick-reply {

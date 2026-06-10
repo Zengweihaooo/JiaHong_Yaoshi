@@ -85,12 +85,24 @@
                     </div>
                   </label>
                   <label class="form-field">
-                    <span class="form-field__label">手机号码</span>
-                    <input v-model="form.phone" class="jh-input-field jh-input-field--sm" type="text" placeholder="请输入手机号码" />
+                    <span class="form-field__label"><em v-if="requiresIdentityInfo">*</em>手机号码</span>
+                    <input
+                      v-model="form.phone"
+                      class="jh-input-field jh-input-field--sm"
+                      type="text"
+                      placeholder="请输入手机号码"
+                      :aria-required="requiresIdentityInfo"
+                    />
                   </label>
                   <label class="form-field">
-                    <span class="form-field__label">用药人身份证</span>
-                    <input v-model="form.idCard" class="jh-input-field jh-input-field--sm" type="text" placeholder="请输入身份证号码" />
+                    <span class="form-field__label"><em v-if="requiresIdentityInfo">*</em>用药人身份证</span>
+                    <input
+                      v-model="form.idCard"
+                      class="jh-input-field jh-input-field--sm"
+                      type="text"
+                      placeholder="请输入身份证号码"
+                      :aria-required="requiresIdentityInfo"
+                    />
                   </label>
                   <label v-if="isChildUnderSix" class="form-field">
                     <span class="form-field__label"><em>*</em>监护人姓名</span>
@@ -137,7 +149,7 @@
                   <span class="form-field__label"><em>*</em>肾功能异常</span>
                   <ToggleField v-model="form.kidneyAbnormal" v-model:detail="form.kidneyDetail" />
                 </div>
-                <div class="form-field form-field--pregnancy">
+                <div v-if="showPregnancyOptions" class="form-field form-field--pregnancy">
                   <span class="form-field__label"><em>*</em>妊娠哺乳</span>
                   <div class="pregnancy-options">
                     <button
@@ -172,12 +184,14 @@
                   @focus="showDiagnosisDropdown = true"
                   @click="showDiagnosisDropdown = true"
                 />
-                <div v-if="form.diagnoses.length" class="selected-diagnosis-tags">
+                <div v-if="displayDiagnosisTags.length" class="selected-diagnosis-tags">
                   <DiseaseOption
-                    v-for="tag in form.diagnoses"
-                    :key="tag"
-                    :label="tag"
+                    v-for="tag in displayDiagnosisTags"
+                    :key="tag.label"
+                    :label="tag.label"
+                    :disabled="tag.disabled"
                     class="selected-diagnosis-option"
+                    @click="removeDiagnosis(tag.label)"
                   />
                 </div>
                 <div v-if="showDiagnosisDropdown" class="diagnosis-dropdown">
@@ -188,8 +202,9 @@
                       :key="tag"
                       :label="tag"
                       :selected="form.diagnoses.includes(tag)"
+                      :disabled="isDiagnosisDisabled(tag)"
                       @mousedown.prevent
-                      @click="addDiagnosis(tag)"
+                      @click="toggleDiagnosis(tag)"
                     />
                   </div>
                 </div>
@@ -199,10 +214,7 @@
             <section :class="['form-section', 'medicine-section', { 'is-disabled': !canEditMedicine }]">
               <div class="form-section__title-row">
                 <h2 class="form-section__title"><em>*</em>所需药品</h2>
-                <div class="form-section__title-actions">
-                  <span class="form-section__note">乙类OTC不需开具处方，请勿录入</span>
-                  <Button variant="outline-secondary" size="sm" :disabled="!canEditMedicine" @click="registerNewMedicine">新品登记</Button>
-                </div>
+                <span class="form-section__note">乙类OTC不需开具处方，请勿录入</span>
               </div>
               <div :class="['right-field-control', 'medicine-search', { 'is-active': medicineFocused, 'is-disabled': !canEditMedicine }]">
                 <input
@@ -297,7 +309,8 @@
         <footer class="quick-consult-card__footer">
           <label class="consent-check">
             <input v-model="form.agreed" type="checkbox" />
-            <span>我已阅读并同意 <a href="#" @click.prevent>《互联网问诊知情同意书》</a></span>
+            <span class="consent-check__box" aria-hidden="true"></span>
+            <span class="consent-check__text">我已阅读并同意 <a href="#" @click.prevent>《互联网问诊知情同意书》</a></span>
           </label>
           <Button variant="primary" size="md" @click="handleSubmit">提交</Button>
         </footer>
@@ -335,26 +348,32 @@
           <div class="submit-confirm-dialog__body">
             <p class="submit-confirm-dialog__tip">
               <span class="submit-confirm-dialog__tip-icon" aria-hidden="true">!</span>
-              请仔细核对疾病信息及所需药品，确认无误后继续提交
+              每个或每组药品至少选择一个疾病信息
             </p>
 
-            <div class="submit-confirm-row">
-              <span class="submit-confirm-row__label">确诊疾病</span>
-              <div class="submit-confirm-tags">
-                <span v-for="item in confirmedDiagnoses" :key="item" class="submit-confirm-tag">{{ item }}</span>
-              </div>
+            <div class="submit-confirm-groups">
+              <section v-for="group in diagnosisConfirmGroups" :key="group.id" class="submit-confirm-group">
+                <h3>{{ group.medicineName }}</h3>
+                <div class="submit-confirm-tags">
+                  <DiseaseOption
+                    v-for="option in group.options"
+                    :key="`${group.id}-${option.label}`"
+                    :label="option.label"
+                    :selected="isConfirmDiagnosisSelected(group.id, option.label)"
+                    :disabled="option.disabled"
+                    @click="toggleConfirmDiagnosis(group.id, option.label)"
+                  />
+                </div>
+              </section>
             </div>
 
-            <div class="submit-confirm-row">
-              <span class="submit-confirm-row__label">所需药品</span>
-              <div class="submit-confirm-tags">
-                <span v-for="item in confirmedMedicines" :key="item" class="submit-confirm-tag">{{ item }}</span>
-              </div>
+            <div v-if="diagnosisConfirmGroups.length === 0" class="submit-confirm-empty">
+              已选择的药品和疾病信息匹配，可以继续提交。
             </div>
           </div>
 
           <footer class="submit-confirm-dialog__footer">
-            <Button variant="primary" size="sm" @click="goTextConsult">确定</Button>
+            <Button variant="primary" size="sm" :disabled="!canConfirmDiagnoses" @click="confirmDiagnosesAndSubmit">确定</Button>
           </footer>
         </section>
       </div>
@@ -363,7 +382,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { Button, DiseaseOption, assetUrl } from "@jiahong/ui";
 import ToggleField from "@/components/quick-consult/ToggleField.vue";
@@ -380,6 +399,7 @@ const medicineFocused = ref(false);
 const activeUnitMedicineId = ref(null);
 const patientNameFocused = ref(false);
 const patientNameInput = ref(null);
+const confirmDiagnosisSelections = reactive({});
 
 const consultType = computed(() => route.query.type || consultStore.consultType || "western");
 const medicinePlaceholder = computed(() =>
@@ -396,6 +416,9 @@ const pregnancyOptions = [
 ];
 
 const commonDiagnoses = [
+  "认知障碍",
+  "卒中后抑郁",
+  "抑郁发作",
   "高血压",
   "急性支气管炎",
   "冠状动脉粥样硬化性心脏病（冠心病）",
@@ -427,6 +450,23 @@ const medicineOptions = [
   { id: "m-6", type: "tcm", name: "参苏丸", spec: "6g*10袋", unit: "盒" }
 ];
 
+const psychMedicineNames = ["草酸艾司西酞普兰片"];
+const medicineDiagnosisRules = [
+  {
+    id: "psych",
+    match: (name) => name.includes("草酸艾司西酞普兰片"),
+    medicineName: "草酸艾司西酞普兰片",
+    options: ["认知障碍", "卒中后抑郁", "抑郁发作"],
+    disabledOptions: ["抑郁发作"]
+  },
+  {
+    id: "cold",
+    match: (name) => name.includes("感冒"),
+    medicineName: "感冒灵胶囊",
+    options: ["急性鼻咽炎【感冒】"],
+    disabledOptions: []
+  }
+];
 const medicineUnits = ["盒", "瓶", "支", "袋", "板", "片"];
 
 const form = reactive({
@@ -448,10 +488,7 @@ const form = reactive({
   diagnosisKeyword: "",
   diagnoses: [],
   medicineKeyword: "",
-  medicines: [
-    { id: 1, type: "western", name: "阿奇霉素分散片", spec: "0.125g*6片", qty: 1, unit: "盒" },
-    { id: 2, type: "tcm", name: "阿奇霉素分散片", spec: "0.125g*6片", qty: 1, unit: "盒" }
-  ],
+  medicines: [],
   remark: "",
   agreed: false
 });
@@ -474,8 +511,50 @@ const guardianComplete = computed(() => {
 
 const canEditMedicine = computed(() => patientBaseComplete.value && guardianComplete.value);
 const hasMedicines = computed(() => canEditMedicine.value && form.medicines.length > 0);
+const showPregnancyOptions = computed(() => form.gender === "female");
+const requiresIdentityInfo = computed(() => {
+  const keyword = form.medicineKeyword.trim();
+  return [...form.medicines.map((item) => item.name), keyword].filter(Boolean).some((name) => {
+    return psychMedicineNames.some((medicineName) => name.includes(medicineName) || medicineName.includes(name));
+  });
+});
 const confirmedDiagnoses = computed(() => (form.diagnoses.length ? form.diagnoses : ["认知障碍", "卒中后抑郁", "抑郁发作"]));
 const confirmedMedicines = computed(() => form.medicines.map((item) => item.name));
+const displayDiagnosisTags = computed(() => {
+  const tags = form.diagnoses.map((label) => ({
+    label,
+    disabled: isDiagnosisDisabled(label)
+  }));
+
+  if (requiresIdentityInfo.value && !form.diagnoses.includes("抑郁发作")) {
+    tags.push({ label: "抑郁发作", disabled: true });
+  }
+
+  return tags;
+});
+const diagnosisConfirmGroups = computed(() => {
+  return form.medicines
+    .map((medicine) => {
+      const rule = medicineDiagnosisRules.find((item) => item.match(medicine.name));
+      if (!rule) return null;
+      const hasMatchedDiagnosis = rule.options.some((option) => form.diagnoses.includes(option));
+      if (hasMatchedDiagnosis) return null;
+      return {
+        id: `${rule.id}-${medicine.id}`,
+        ruleId: rule.id,
+        medicineName: medicine.name,
+        options: rule.options.map((label) => ({
+          label,
+          disabled: rule.disabledOptions.includes(label) || isDiagnosisDisabled(label)
+        }))
+      };
+    })
+    .filter(Boolean);
+});
+const canConfirmDiagnoses = computed(() => {
+  if (diagnosisConfirmGroups.value.length === 0) return true;
+  return diagnosisConfirmGroups.value.every((group) => Boolean(confirmDiagnosisSelections[group.id]));
+});
 const filteredMedicineOptions = computed(() => {
   const keyword = form.medicineKeyword.trim().toLowerCase();
   if (!keyword) return medicineOptions;
@@ -484,11 +563,51 @@ const filteredMedicineOptions = computed(() => {
   });
 });
 
+function toggleDiagnosis(tag) {
+  if (isDiagnosisDisabled(tag)) return;
+  if (form.diagnoses.includes(tag)) {
+    removeDiagnosis(tag);
+  } else {
+    addDiagnosis(tag);
+  }
+}
+
 function addDiagnosis(tag) {
+  if (isDiagnosisDisabled(tag)) return;
   if (!form.diagnoses.includes(tag)) {
     form.diagnoses.push(tag);
   }
   form.diagnosisKeyword = "";
+}
+
+function removeDiagnosis(tag) {
+  if (isDiagnosisDisabled(tag)) return;
+  form.diagnoses = form.diagnoses.filter((item) => item !== tag);
+}
+
+function isDiagnosisDisabled(tag) {
+  return requiresIdentityInfo.value && tag === "抑郁发作";
+}
+
+function resetConfirmDiagnosisSelections() {
+  Object.keys(confirmDiagnosisSelections).forEach((key) => {
+    delete confirmDiagnosisSelections[key];
+  });
+}
+
+function isConfirmDiagnosisSelected(groupId, label) {
+  return confirmDiagnosisSelections[groupId] === label;
+}
+
+function toggleConfirmDiagnosis(groupId, label) {
+  const group = diagnosisConfirmGroups.value.find((item) => item.id === groupId);
+  const option = group?.options.find((item) => item.label === label);
+  if (!group || option?.disabled) return;
+  if (confirmDiagnosisSelections[groupId] === label) {
+    delete confirmDiagnosisSelections[groupId];
+  } else {
+    confirmDiagnosisSelections[groupId] = label;
+  }
 }
 
 function closeDiagnosisDropdown(event) {
@@ -593,13 +712,23 @@ function handleSubmit() {
     showConsentDialog.value = true;
     return;
   }
-  showConfirmDialog.value = true;
+  if (diagnosisConfirmGroups.value.length > 0) {
+    resetConfirmDiagnosisSelections();
+    showConfirmDialog.value = true;
+    return;
+  }
+  goTextConsult();
 }
 
 function agreeAndSubmit() {
   form.agreed = true;
   showConsentDialog.value = false;
-  showConfirmDialog.value = true;
+  if (diagnosisConfirmGroups.value.length > 0) {
+    resetConfirmDiagnosisSelections();
+    showConfirmDialog.value = true;
+    return;
+  }
+  goTextConsult();
 }
 
 function closeConsentDialog() {
@@ -610,10 +739,28 @@ function closeConfirmDialog() {
   showConfirmDialog.value = false;
 }
 
+function confirmDiagnosesAndSubmit() {
+  if (!canConfirmDiagnoses.value) return;
+  Object.values(confirmDiagnosisSelections).forEach((label) => {
+    addDiagnosis(label);
+  });
+  resetConfirmDiagnosisSelections();
+  goTextConsult();
+}
+
 function goTextConsult() {
   showConfirmDialog.value = false;
   router.push({ name: "text-consult" });
 }
+
+watch(
+  () => form.gender,
+  (gender) => {
+    if (gender === "male") {
+      form.pregnancy = "none";
+    }
+  }
+);
 
 onMounted(() => {
   document.addEventListener("mousedown", closeDiagnosisDropdown);
@@ -758,9 +905,9 @@ onBeforeUnmount(() => {
 
 .form-section__title-row {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
   margin-bottom: 14px;
 }
 
@@ -768,17 +915,10 @@ onBeforeUnmount(() => {
   margin-bottom: 0;
 }
 
-.form-section__title-actions {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-end;
-  gap: 8px;
-}
-
 .form-section__note {
   color: var(--jh-color-muted);
   font-size: 14px;
-  line-height: 32px;
+  line-height: 26px;
 }
 
 .form-grid {
@@ -852,8 +992,7 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.form-radio input,
-.consent-check input {
+.form-radio input {
   accent-color: var(--jh-color-primary);
 }
 
@@ -901,6 +1040,10 @@ onBeforeUnmount(() => {
 }
 
 .patient-name-input::placeholder {
+  color: var(--jh-color-placeholder, #b8bec8);
+}
+
+.quick-consult-card input::placeholder {
   color: var(--jh-color-placeholder, #b8bec8);
 }
 
@@ -1099,10 +1242,6 @@ onBeforeUnmount(() => {
   color: var(--jh-color-muted);
 }
 
-.medicine-section.is-disabled :deep(.jh-btn) {
-  cursor: not-allowed;
-}
-
 .medicine-search {
   position: relative;
 }
@@ -1121,10 +1260,6 @@ onBeforeUnmount(() => {
   background: #fff;
   outline: none;
   transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-
-.medicine-search__input::placeholder {
-  color: rgba(0, 0, 0, 0.26);
 }
 
 .medicine-search__input:hover {
@@ -1476,6 +1611,7 @@ onBeforeUnmount(() => {
 }
 
 .consent-check {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -1484,7 +1620,51 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.consent-check span {
+.consent-check input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.consent-check__box {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border: 1.925px solid #e5e8eb;
+  border-radius: 4px;
+  background: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.consent-check:hover .consent-check__box {
+  border-color: #3b92ff;
+}
+
+.consent-check input:checked + .consent-check__box {
+  border-color: transparent;
+  background: linear-gradient(270deg, #3b92ff 0%, #006ef9 100%);
+}
+
+.consent-check input:checked + .consent-check__box::after {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 13px;
+  height: 8px;
+  border-left: 3px solid #fff;
+  border-bottom: 3px solid #fff;
+  border-radius: 1px;
+  content: "";
+  transform: translate(-50%, -62%) rotate(-45deg);
+}
+
+.consent-check__text {
   color: var(--jh-color-muted);
 }
 
@@ -1594,41 +1774,41 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(19, 29, 43, 0.42);
+  background: rgba(19, 29, 43, 0.45);
 }
 
 .submit-confirm-dialog {
-  width: min(520px, calc(100vw - 48px));
-  border-radius: var(--jh-radius-md);
+  width: min(778px, calc(100vw - 48px));
+  border-radius: 8px;
   background: var(--jh-color-bg-surface);
-  box-shadow: 0 20px 48px rgba(19, 29, 43, 0.22);
   overflow: hidden;
+  box-shadow: 0 20px 48px rgba(19, 29, 43, 0.22);
 }
 
 .submit-confirm-dialog__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 44px;
-  padding: 0 18px;
-  border-bottom: 1px solid var(--jh-color-border);
+  height: 64px;
+  padding: 0 20px;
+  border-bottom: 1px solid #e5e8eb;
+  background: #fff;
 }
 
 .submit-confirm-dialog__header h2 {
   margin: 0;
-  color: var(--jh-color-text);
-  font-size: 16px;
-  font-weight: 600;
+  color: #1f2937;
+  font-size: 20px;
+  font-weight: 400;
   line-height: 24px;
 }
 
 .submit-confirm-dialog__close {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: var(--jh-radius-sm);
-  color: var(--jh-color-muted);
-  font-size: 20px;
+  color: #8b98a7;
+  font-size: 34px;
   line-height: 1;
   background: transparent;
   cursor: pointer;
@@ -1639,28 +1819,29 @@ onBeforeUnmount(() => {
 }
 
 .submit-confirm-dialog__warning {
-  padding: 10px 18px;
-  color: #f07d22;
-  font-size: 13px;
-  line-height: 20px;
-  background: #fff4e5;
+  padding: 10px 22px;
+  color: #ff6b1a;
+  font-size: 16px;
+  line-height: 24px;
+  background: #fff2df;
 }
 
 .submit-confirm-dialog__body {
   display: grid;
-  gap: 16px;
-  padding: 16px 18px 4px;
-  background: #f7fbff;
+  gap: 14px;
+  padding: 18px 30px 18px;
+  background: #fff;
 }
 
 .submit-confirm-dialog__tip {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   margin: 0;
-  color: var(--jh-color-muted);
-  font-size: 13px;
-  line-height: 20px;
+  color: #ff6b1a;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 24px;
 }
 
 .submit-confirm-dialog__tip-icon {
@@ -1668,13 +1849,49 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 18px;
-  height: 18px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   color: #fff;
-  font-size: 12px;
+  font-size: 16px;
   font-weight: 700;
-  background: #f07d22;
+  background: #ee7417;
+}
+
+.submit-confirm-groups {
+  display: grid;
+  gap: 10px;
+}
+
+.submit-confirm-group {
+  min-height: 96px;
+  padding: 14px 18px;
+  border-radius: 4px;
+  background: #f3f7fd;
+}
+
+.submit-confirm-group h3 {
+  margin: 0 0 10px;
+  color: rgba(0, 0, 0, 0.48);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 22px;
+}
+
+.submit-confirm-group :deep(.jh-disease-option) {
+  min-height: 34px;
+  padding: 4px 16px;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.submit-confirm-empty {
+  padding: 32px 18px;
+  border-radius: 4px;
+  color: var(--jh-color-muted);
+  font-size: 16px;
+  text-align: center;
+  background: #f3f7fd;
 }
 
 .submit-confirm-row {
@@ -1713,14 +1930,16 @@ onBeforeUnmount(() => {
 .submit-confirm-dialog__footer {
   display: flex;
   justify-content: flex-end;
-  padding: 14px 18px 18px;
-  background: #f7fbff;
+  padding: 0 30px 24px;
+  background: #fff;
 }
 
 .submit-confirm-dialog__footer :deep(.jh-btn) {
-  width: 68px;
-  height: 34px;
-  font-size: 14px;
+  width: 96px;
+  height: 56px;
+  border-radius: 10px;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 @media (max-width: 960px) {
