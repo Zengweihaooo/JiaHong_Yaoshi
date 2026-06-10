@@ -27,7 +27,7 @@
 
         <div class="tc-shell__body">
           <section class="tc-chat" aria-label="问诊对话">
-            <div class="tc-chat-scroll">
+            <div ref="chatScrollRef" class="tc-chat-scroll">
               <p class="tc-chat-time">2026-01-13 16:38:21</p>
 
               <article class="tc-doctor-message">
@@ -70,15 +70,48 @@
                 <div class="tc-doctor-message__content">
                   <span class="tc-doctor-name">蒲测试</span>
                   <div class="tc-doctor-bubble">
-                    已收到您的问诊信息。请继续确认当前症状、既往用药情况及是否需要医生开具处方。
+                    您已确诊过此疾病并使用过该药品，且无相关禁忌症和不良反应。请问您是否还有信息需要补充?如无，我将依据病情为您开具处方。
                   </div>
                 </div>
               </article>
 
-              <div v-if="showDoctorFollowUp" class="tc-decision">
-                <button class="tc-decision-btn tc-decision-btn--ghost" type="button">信息有误，取消开方</button>
-                <button class="tc-decision-btn tc-decision-btn--primary" type="button">无需补充，立即开方</button>
+              <div v-if="showDoctorFollowUp && !prescriptionReady && !consultCancelled" class="tc-decision">
+                <button class="tc-decision-btn tc-decision-btn--ghost" type="button" @click="showCancelDialog = true">
+                  信息有误，取消开方
+                </button>
+                <button class="tc-decision-btn tc-decision-btn--primary" type="button" @click="confirmPrescription">无需补充，立即开方</button>
               </div>
+
+              <article v-if="consultCancelled" class="tc-patient-message">
+                <div class="tc-patient-bubble">信息有误，取消开方</div>
+                <span class="tc-patient-avatar">W</span>
+              </article>
+
+              <article v-if="prescriptionReady" class="tc-patient-message">
+                <div class="tc-patient-bubble">无需补充，立即开方</div>
+                <span class="tc-patient-avatar">W</span>
+              </article>
+
+              <article v-if="prescriptionReady" class="tc-doctor-message tc-doctor-message--final">
+                <div class="tc-doctor-avatar" aria-hidden="true">
+                  <img v-if="doctorAvatar" :src="doctorAvatar" alt="" />
+                  <span v-else>蒲</span>
+                </div>
+                <div class="tc-doctor-message__content">
+                  <span class="tc-doctor-name">蒲测试</span>
+                  <div class="tc-doctor-bubble">您的处方已开出，本次诊疗已结束，请移步收款台购药。</div>
+                </div>
+              </article>
+
+              <button v-if="prescriptionReady" class="tc-print-card" type="button">
+                <span class="tc-print-card__text">
+                  <strong>打印处方</strong>
+                  <em>问诊完成，点击打印</em>
+                </span>
+                <span class="tc-print-card__icon" aria-hidden="true">
+                  <span class="tc-print-card__paper"></span>
+                </span>
+              </button>
             </div>
 
             <footer class="tc-reply">
@@ -120,16 +153,35 @@
         </div>
       </section>
     </main>
+
+    <div v-if="consultCancelled" class="tc-status-toast" role="status">取消问诊成功，当前问诊已结束。</div>
+
+    <div v-if="showCancelDialog" class="tc-cancel-overlay" role="presentation">
+      <section class="tc-cancel-dialog" role="dialog" aria-modal="true" aria-labelledby="tc-cancel-title">
+        <header class="tc-cancel-dialog__header">
+          <h2 id="tc-cancel-title">取消问诊</h2>
+          <button class="tc-cancel-dialog__close" type="button" aria-label="关闭" @click="showCancelDialog = false">×</button>
+        </header>
+        <div class="tc-cancel-dialog__body">是否确定取消问诊?</div>
+        <footer class="tc-cancel-dialog__footer">
+          <button class="tc-cancel-dialog__confirm" type="button" @click="confirmCancelConsult">确定</button>
+        </footer>
+      </section>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { defineComponent, h, onBeforeUnmount, onMounted, ref } from "vue";
+import { defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import { Button, assetUrl } from "@jiahong/ui";
 
 const router = useRouter();
 const showDoctorFollowUp = ref(false);
+const prescriptionReady = ref(false);
+const showCancelDialog = ref(false);
+const consultCancelled = ref(false);
+const chatScrollRef = ref(null);
 let followTimer;
 
 const doctorAvatar = "/images/pu-test.png";
@@ -191,9 +243,30 @@ const MedicationReminder = defineComponent({
   }
 });
 
+function scrollChatToBottom() {
+  nextTick(() => {
+    const el = chatScrollRef.value;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
+  });
+}
+
+function confirmPrescription() {
+  prescriptionReady.value = true;
+  scrollChatToBottom();
+}
+
+function confirmCancelConsult() {
+  showCancelDialog.value = false;
+  consultCancelled.value = true;
+  scrollChatToBottom();
+}
+
 onMounted(() => {
   followTimer = window.setTimeout(() => {
     showDoctorFollowUp.value = true;
+    scrollChatToBottom();
   }, 5000);
 });
 
@@ -349,6 +422,10 @@ onBeforeUnmount(() => {
   margin-top: 32px;
 }
 
+.tc-doctor-message--final {
+  margin-top: 28px;
+}
+
 .tc-doctor-avatar {
   display: inline-flex;
   flex: 0 0 auto;
@@ -501,6 +578,123 @@ onBeforeUnmount(() => {
   font-size: 16px;
   font-weight: 700;
   background: linear-gradient(270deg, #3b92ff 0%, #006ef9 100%);
+}
+
+.tc-patient-message {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-end;
+  gap: 12px;
+  margin: 28px 0 0 auto;
+}
+
+.tc-patient-bubble {
+  max-width: 420px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  color: rgba(0, 0, 0, 0.9);
+  font-size: 14px;
+  line-height: 22px;
+  background: #ebf3ff;
+}
+
+.tc-patient-avatar {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 20px;
+  line-height: 28px;
+  background: #006ef9;
+}
+
+.tc-print-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(384px, 100%);
+  height: 126px;
+  margin: 14px 0 0 52px;
+  padding: 18px 32px 22px;
+  border: 1px solid #b2d4fd;
+  border-radius: 14px;
+  text-align: left;
+  background:
+    linear-gradient(180deg, rgba(199, 231, 255, 0.2) 0%, rgba(255, 255, 255, 0.2) 70%),
+    linear-gradient(90deg, #fff 0%, #fff 100%);
+  box-shadow: 0 6px 16px -8px rgba(16, 42, 67, 0.08), 0 1px 3px rgba(16, 42, 67, 0.05);
+  cursor: pointer;
+}
+
+.tc-print-card__text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.tc-print-card__text strong {
+  color: #344054;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 1.2px;
+}
+
+.tc-print-card__text em {
+  color: rgba(52, 64, 84, 0.56);
+  font-size: 14px;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: 0.7px;
+}
+
+.tc-print-card__icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 85px;
+  height: 86px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, #c8e6ff 0%, #5aa2ff 100%);
+  box-shadow: inset 0 14px 18px rgba(255, 255, 255, 0.38);
+}
+
+.tc-print-card__icon::before,
+.tc-print-card__icon::after {
+  position: absolute;
+  left: 26px;
+  width: 36px;
+  height: 6px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  content: "";
+}
+
+.tc-print-card__icon::before {
+  top: 24px;
+}
+
+.tc-print-card__icon::after {
+  top: 40px;
+}
+
+.tc-print-card__paper {
+  position: absolute;
+  left: 14px;
+  bottom: 19px;
+  width: 56px;
+  height: 42px;
+  border: 7px solid rgba(35, 126, 238, 0.65);
+  border-top: 0;
+  border-radius: 0 0 10px 10px;
+  transform: rotate(42deg) skew(-7deg, -7deg);
+  transform-origin: center;
 }
 
 .tc-reply {
@@ -821,6 +1015,107 @@ onBeforeUnmount(() => {
 
 .tc-medicine :deep(.tc-reminder-item--safe span) {
   background: #2ba471;
+}
+
+.tc-status-toast {
+  position: fixed;
+  top: 78px;
+  left: 50%;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  height: 32px;
+  padding: 0 16px;
+  border: 1px solid #ccebdc;
+  border-radius: 6px;
+  color: #2ba471;
+  font-size: 13px;
+  background: #f0faf5;
+  box-shadow: 0 6px 16px rgba(30, 41, 59, 0.08);
+  transform: translateX(-50%);
+}
+
+.tc-cancel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.tc-cancel-dialog {
+  width: 640px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 18px 44px rgba(17, 24, 39, 0.22);
+}
+
+.tc-cancel-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 16px 0 24px;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+  background: #f2f3f4;
+}
+
+.tc-cancel-dialog__header h2 {
+  margin: 0;
+  color: #1e2939;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.tc-cancel-dialog__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 6px;
+  color: rgba(0, 0, 0, 0.45);
+  font: inherit;
+  font-size: 28px;
+  line-height: 1;
+  background: transparent;
+  cursor: pointer;
+}
+
+.tc-cancel-dialog__close:hover {
+  color: rgba(0, 0, 0, 0.7);
+}
+
+.tc-cancel-dialog__body {
+  min-height: 72px;
+  padding: 24px;
+  color: #1e2939;
+  font-size: 16px;
+  line-height: 24px;
+}
+
+.tc-cancel-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px 24px;
+}
+
+.tc-cancel-dialog__confirm {
+  width: 80px;
+  height: 40px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(270deg, #3b92ff 0%, #006ef9 100%);
+  cursor: pointer;
 }
 
 @media (max-width: 1280px) {
