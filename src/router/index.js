@@ -2,6 +2,8 @@ import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "@/views/HomeView.vue";
 import RecordsView from "@/views/RecordsView.vue";
 import QuickConsultView from "@/views/QuickConsultView.vue";
+import NewProductView from "@/views/NewProductView.vue";
+import TextConsultView from "@/views/TextConsultView.vue";
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -19,10 +21,22 @@ export const router = createRouter({
       meta: { title: "问诊记录" }
     },
     {
+      path: "/new-product",
+      name: "new-product",
+      component: NewProductView,
+      meta: { title: "新品登记" }
+    },
+    {
       path: "/quick-consult",
       name: "quick-consult",
       component: QuickConsultView,
       meta: { title: "快速问诊" }
+    },
+    {
+      path: "/text-consult",
+      name: "text-consult",
+      component: TextConsultView,
+      meta: { title: "图文问诊" }
     },
     {
       path: "/:pathMatch(.*)*",

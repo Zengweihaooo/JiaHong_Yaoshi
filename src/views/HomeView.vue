@@ -50,6 +50,10 @@ function goRecords() {
   router.push({ name: "records" });
 }
 
+function goNewProduct() {
+  router.push({ name: "new-product" });
+}
+
 function goQuickConsult(type = "western") {
   consultStore.setConsultType(type);
   router.push({ name: "quick-consult", query: { type } });
@@ -59,6 +63,7 @@ function goQuickConsult(type = "western") {
 const hotspots = [
   { id: "nav-home", label: "首页", x: 222, y: 65, w: 100, h: 80, action: goHome },
   { id: "nav-records", label: "问诊记录", x: 554, y: 65, w: 100, h: 80, action: goRecords },
+  { id: "nav-new-product", label: "新品登记", x: 958, y: 65, w: 100, h: 80, action: goNewProduct },
   { id: "quick", label: "便民快速问诊", x: 1089, y: 163, w: 166, h: 100, action: () => goQuickConsult("western") },
   { id: "text", label: "图文问诊", x: 1263, y: 163, w: 166, h: 100, action: () => { showConsultTypeDialog.value = true; } }
 ];

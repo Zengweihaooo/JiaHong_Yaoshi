@@ -201,37 +201,79 @@
                 <h2 class="form-section__title"><em>*</em>所需药品</h2>
                 <div class="form-section__title-actions">
                   <span class="form-section__note">乙类OTC不需开具处方，请勿录入</span>
-                  <Button variant="outline-secondary" size="sm" :disabled="!canEditMedicine">新品登记</Button>
+                  <Button variant="outline-secondary" size="sm" :disabled="!canEditMedicine" @click="registerNewMedicine">新品登记</Button>
                 </div>
               </div>
-              <div class="right-field-control">
+              <div :class="['right-field-control', 'medicine-search', { 'is-active': medicineFocused, 'is-disabled': !canEditMedicine }]">
                 <input
                   v-model="form.medicineKeyword"
-                  class="jh-input-field jh-input-field--sm"
+                  class="medicine-search__input"
                   type="text"
                   :disabled="!canEditMedicine"
                   :placeholder="medicinePlaceholder"
+                  @focus="openMedicineDropdown"
+                  @click="openMedicineDropdown"
                 />
+                <div v-if="showMedicineDropdown" class="medicine-dropdown">
+                  <button
+                    v-for="option in filteredMedicineOptions"
+                    :key="option.id"
+                    class="medicine-dropdown__item"
+                    type="button"
+                    @mousedown.prevent
+                    @click="addMedicine(option)"
+                  >
+                    <span class="medicine-dropdown__type">[{{ medicineTypeLabel(option.type) }}]</span>
+                    <span class="medicine-dropdown__name">{{ option.name }}</span>
+                    <span class="medicine-dropdown__spec">{{ option.spec }}</span>
+                    <span class="medicine-dropdown__unit">{{ option.unit }}</span>
+                  </button>
+                  <div v-if="!filteredMedicineOptions.length" class="medicine-not-found">
+                    <button class="medicine-not-found__action" type="button" @mousedown.prevent @click="registerNewMedicine">
+                      <span class="medicine-not-found__icon" aria-hidden="true"></span>
+                      新品登记
+                    </button>
+                    <span>未找到该药品，点击登记</span>
+                  </div>
+                </div>
               </div>
               <div v-if="canEditMedicine" class="medicine-list">
                 <article v-for="item in form.medicines" :key="item.id" class="medicine-row">
-                  <span :class="['jh-tag jh-tag--lg', item.type === 'western' ? 'medicine-type-tag--western' : 'medicine-type-tag--tcm']">
-                    {{ item.type === 'western' ? '西药' : '中成药' }}
+                  <span :class="['medicine-type-tag', `medicine-type-tag--${item.type}`]">
+                    {{ medicineTypeLabel(item.type) }}
                   </span>
                   <div class="medicine-row__info">
                     <strong>{{ item.name }}</strong>
-                    <span>{{ item.spec }}</span>
                   </div>
+                  <span class="medicine-row__spec">{{ item.spec }}</span>
                   <div class="medicine-row__qty">
                     <button class="qty-btn" type="button" :disabled="!canEditMedicine" @click="changeQty(item, -1)">−</button>
-                    <input v-model.number="item.qty" class="qty-input" type="number" min="1" :disabled="!canEditMedicine" />
+                    <span class="qty-value">{{ item.qty }}</span>
                     <button class="qty-btn" type="button" :disabled="!canEditMedicine" @click="changeQty(item, 1)">+</button>
                   </div>
-                  <select v-model="item.unit" class="medicine-row__unit" :disabled="!canEditMedicine">
-                    <option value="盒">盒</option>
-                    <option value="瓶">瓶</option>
-                    <option value="袋">袋</option>
-                  </select>
+                  <div class="medicine-unit" @focusout="handleUnitFocusout($event, item)">
+                    <button
+                      class="medicine-row__unit"
+                      type="button"
+                      :disabled="!canEditMedicine"
+                      @click="toggleUnitDropdown(item)"
+                    >
+                      <span>{{ item.unit }}</span>
+                      <span class="medicine-row__unit-arrow">⌄</span>
+                    </button>
+                    <div v-if="activeUnitMedicineId === item.id" class="medicine-unit-menu">
+                      <button
+                        v-for="unit in medicineUnits"
+                        :key="unit"
+                        :class="['medicine-unit-menu__item', { 'is-active': item.unit === unit }]"
+                        type="button"
+                        @mousedown.prevent
+                        @click="selectMedicineUnit(item, unit)"
+                      >
+                        {{ unit }}
+                      </button>
+                    </div>
+                  </div>
                   <button class="medicine-row__remove" type="button" aria-label="删除药品" :disabled="!canEditMedicine" @click="removeMedicine(item.id)">×</button>
                 </article>
               </div>
@@ -312,7 +354,7 @@
           </div>
 
           <footer class="submit-confirm-dialog__footer">
-            <Button variant="primary" size="sm" @click="closeConfirmDialog">确定</Button>
+            <Button variant="primary" size="sm" @click="goTextConsult">确定</Button>
           </footer>
         </section>
       </div>
@@ -333,6 +375,9 @@ const consultStore = useConsultStore();
 const showConfirmDialog = ref(false);
 const showConsentDialog = ref(false);
 const showDiagnosisDropdown = ref(false);
+const showMedicineDropdown = ref(false);
+const medicineFocused = ref(false);
+const activeUnitMedicineId = ref(null);
 const patientNameFocused = ref(false);
 const patientNameInput = ref(null);
 
@@ -340,9 +385,7 @@ const consultType = computed(() => route.query.type || consultStore.consultType 
 const medicinePlaceholder = computed(() =>
   !canEditMedicine.value
     ? "请将基本信息填写完整后再进行录药"
-    : consultType.value === "tcm"
-      ? "[中药] 请输入药品名称和规格...最多可录入5个药品"
-      : "[西药] 请输入药品名称和规格...最多可录入5个药品"
+    : "请输入药品名称或首字母做模糊查询"
 );
 
 const pregnancyOptions = [
@@ -374,6 +417,17 @@ const commonDiagnoses = [
   "支气管哮喘",
   "手皮肤感染"
 ];
+
+const medicineOptions = [
+  { id: "m-1", type: "western", name: "感冒灵胶囊", spec: "0.5g*24片", unit: "盒" },
+  { id: "m-2", type: "tcm", name: "感冒灵颗粒", spec: "10g*7袋", unit: "盒" },
+  { id: "m-3", type: "western", name: "草酸艾司西酞普兰片", spec: "10mg*7片", unit: "盒" },
+  { id: "m-4", type: "western", name: "阿奇霉素分散片", spec: "0.125g*6片", unit: "盒" },
+  { id: "m-5", type: "compound", name: "复方氨酚烷胺胶囊", spec: "10粒", unit: "盒" },
+  { id: "m-6", type: "tcm", name: "参苏丸", spec: "6g*10袋", unit: "盒" }
+];
+
+const medicineUnits = ["盒", "瓶", "支", "袋", "板", "片"];
 
 const form = reactive({
   patientName: "",
@@ -422,6 +476,13 @@ const canEditMedicine = computed(() => patientBaseComplete.value && guardianComp
 const hasMedicines = computed(() => canEditMedicine.value && form.medicines.length > 0);
 const confirmedDiagnoses = computed(() => (form.diagnoses.length ? form.diagnoses : ["认知障碍", "卒中后抑郁", "抑郁发作"]));
 const confirmedMedicines = computed(() => form.medicines.map((item) => item.name));
+const filteredMedicineOptions = computed(() => {
+  const keyword = form.medicineKeyword.trim().toLowerCase();
+  if (!keyword) return medicineOptions;
+  return medicineOptions.filter((item) => {
+    return [item.name, item.spec, medicineTypeLabel(item.type)].some((value) => value.toLowerCase().includes(keyword));
+  });
+});
 
 function addDiagnosis(tag) {
   if (!form.diagnoses.includes(tag)) {
@@ -434,6 +495,11 @@ function closeDiagnosisDropdown(event) {
   if (!event.target.closest(".diagnosis-section")) {
     showDiagnosisDropdown.value = false;
   }
+  if (!event.target.closest(".medicine-section")) {
+    showMedicineDropdown.value = false;
+    medicineFocused.value = false;
+    activeUnitMedicineId.value = null;
+  }
 }
 
 function changeQty(item, delta) {
@@ -442,6 +508,55 @@ function changeQty(item, delta) {
 
 function removeMedicine(id) {
   form.medicines = form.medicines.filter((item) => item.id !== id);
+}
+
+function medicineTypeLabel(type) {
+  if (type === "tcm") return "中成药";
+  if (type === "compound") return "复方";
+  return "西药";
+}
+
+function openMedicineDropdown() {
+  if (!canEditMedicine.value) return;
+  showMedicineDropdown.value = true;
+  medicineFocused.value = true;
+}
+
+function addMedicine(option) {
+  const duplicate = form.medicines.some((item) => item.name === option.name && item.spec === option.spec);
+  if (!duplicate) {
+    form.medicines.push({
+      id: Date.now(),
+      type: option.type,
+      name: option.name,
+      spec: option.spec,
+      qty: 1,
+      unit: option.unit
+    });
+  }
+  form.medicineKeyword = "";
+  showMedicineDropdown.value = false;
+  medicineFocused.value = false;
+}
+
+function registerNewMedicine() {
+  if (!canEditMedicine.value) return;
+  router.push({ name: "new-product", query: form.medicineKeyword.trim() ? { keyword: form.medicineKeyword.trim() } : {} });
+}
+
+function toggleUnitDropdown(item) {
+  activeUnitMedicineId.value = activeUnitMedicineId.value === item.id ? null : item.id;
+}
+
+function selectMedicineUnit(item, unit) {
+  item.unit = unit;
+  activeUnitMedicineId.value = null;
+}
+
+function handleUnitFocusout(event, item) {
+  if (!event.currentTarget.contains(event.relatedTarget) && activeUnitMedicineId.value === item.id) {
+    activeUnitMedicineId.value = null;
+  }
 }
 
 function handlePatientNameFocusout(event) {
@@ -493,6 +608,11 @@ function closeConsentDialog() {
 
 function closeConfirmDialog() {
   showConfirmDialog.value = false;
+}
+
+function goTextConsult() {
+  showConfirmDialog.value = false;
+  router.push({ name: "text-consult" });
 }
 
 onMounted(() => {
@@ -979,84 +1099,271 @@ onBeforeUnmount(() => {
   color: var(--jh-color-muted);
 }
 
-.medicine-section.is-disabled .jh-input-field {
-  border-color: var(--jh-color-border);
-  color: var(--jh-color-muted);
-  background: #f8f9fb;
-  cursor: not-allowed;
-}
-
 .medicine-section.is-disabled :deep(.jh-btn) {
   cursor: not-allowed;
 }
 
-.medicine-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
+.medicine-search {
+  position: relative;
 }
 
-.medicine-row {
-  display: grid;
-  grid-template-columns: 68px minmax(0, 1fr) 118px 72px 28px;
-  align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: var(--jh-radius-sm);
-  background: var(--jh-color-bg-page);
-}
-
-.medicine-type-tag--western {
-  border: 1px solid color-mix(in srgb, var(--jh-color-success) 45%, var(--jh-color-bg-surface));
-  background: color-mix(in srgb, var(--jh-color-success) 12%, var(--jh-color-bg-surface));
-  color: var(--jh-color-success);
-}
-
-.medicine-type-tag--tcm {
-  border: 1px solid color-mix(in srgb, var(--jh-color-warning) 45%, var(--jh-color-bg-surface));
-  background: color-mix(in srgb, var(--jh-color-warning) 12%, var(--jh-color-bg-surface));
-  color: var(--jh-color-warning);
-}
-
-.medicine-row__info {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-}
-
-.medicine-row__info strong {
+.medicine-search__input {
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px;
+  padding: 5px 12px;
+  border: 1px solid #e5e8eb;
+  border-radius: 6px;
   color: var(--jh-color-text);
-  font-size: 16px;
-  font-weight: 400;
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.medicine-search__input::placeholder {
+  color: rgba(0, 0, 0, 0.26);
+}
+
+.medicine-search__input:hover {
+  border-color: #338bfa;
+}
+
+.medicine-search.is-active .medicine-search__input {
+  border-color: #005ed4;
+}
+
+.medicine-search.is-disabled .medicine-search__input {
+  border-color: #e5e8eb;
+  color: var(--jh-color-muted);
+  background: #f8f8f9;
+  cursor: not-allowed;
+}
+
+.medicine-dropdown {
+  position: absolute;
+  z-index: 18;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  max-height: 236px;
+  padding: 4px 0;
+  border: 1px solid #d0d5d9;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 6px 16px rgba(19, 29, 43, 0.12);
+  overflow-y: auto;
+}
+
+.medicine-dropdown__item {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr) 96px 38px;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+  padding: 5px 12px;
+  border: 0;
+  color: #697383;
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  text-align: left;
+  background: #fff;
+  cursor: pointer;
+}
+
+.medicine-dropdown__item:hover {
+  background: #f5f9ff;
+}
+
+.medicine-dropdown__type {
+  color: #697383;
+}
+
+.medicine-dropdown__name,
+.medicine-dropdown__spec {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.medicine-row__info span {
-  color: var(--jh-color-muted);
-  font-size: 16px;
+.medicine-not-found {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+  padding: 8px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.medicine-not-found__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 28px;
+  padding: 4px 12px;
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  background: linear-gradient(270deg, #3b92ff 0%, #006ef9 100%);
+  cursor: pointer;
+}
+
+.medicine-not-found__icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.medicine-not-found__icon::before,
+.medicine-not-found__icon::after {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 11px;
+  height: 2px;
+  border-radius: 2px;
+  background: #fff;
+  content: "";
+  transform: translate(-50%, -50%);
+}
+
+.medicine-not-found__icon::after {
+  width: 2px;
+  height: 11px;
+}
+
+.medicine-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 8px;
+}
+
+.medicine-row {
+  display: grid;
+  grid-template-columns: 65px minmax(120px, 1fr) 114px 102px 56px 28px;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 10px;
+  border: 0;
+  border-bottom: 4px solid #fff;
+  border-radius: 0;
+  background: #f5f9ff;
+}
+
+.medicine-type-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 65px;
+  height: 24px;
+  padding: 2px 12px;
+  border: 1px solid;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: nowrap;
+}
+
+.medicine-type-tag--western {
+  border-color: #2ba471;
+  color: #2ba471;
+  background: #eef8f4;
+}
+
+.medicine-type-tag--tcm {
+  border-color: #e37318;
+  color: #e37318;
+  background: #fdf4ed;
+}
+
+.medicine-type-tag--compound {
+  border-color: #006ef9;
+  color: #006ef9;
+  background: #f5f9ff;
+}
+
+.medicine-row__info {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 40px;
+  padding: 0 8px;
+}
+
+.medicine-row__info strong {
+  color: #697383;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.medicine-row__spec {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 10px;
+  border-radius: 6px;
+  color: #697383;
+  font-size: 14px;
+  line-height: 22px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .medicine-row__qty {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: 2px;
+  width: 102px;
+  padding: 2px;
+  border: 1px solid #d0d5d9;
+  border-radius: 4px;
+  background: #fff;
 }
 
 .qty-btn {
-  width: 36px;
-  height: 32px;
-  font-size: 18px;
-  border: 1px solid var(--jh-color-border);
-  color: var(--jh-color-text);
-  background: var(--jh-color-bg-surface);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  color: #3c4449;
+  font-size: 16px;
+  line-height: 1;
+  background: #fff;
   cursor: pointer;
+}
+
+.medicine-row__qty:hover,
+.medicine-row__qty:focus-within {
+  border-color: #006ef9;
+}
+
+.medicine-row__qty:hover .qty-btn,
+.medicine-row__qty:focus-within .qty-btn {
+  background: #f3f5f6;
 }
 
 .qty-btn:disabled,
@@ -1067,31 +1374,86 @@ onBeforeUnmount(() => {
   opacity: 0.5;
 }
 
-.qty-input {
-  width: 44px;
-  height: 32px;
-  margin: 0 -1px;
-  border: 1px solid var(--jh-color-border);
-  border-radius: 0;
+.qty-value {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  color: #3c4449;
+  font-size: 14px;
+  line-height: 22px;
   text-align: center;
-  appearance: textfield;
-  -moz-appearance: textfield;
 }
 
-.qty-input::-webkit-inner-spin-button,
-.qty-input::-webkit-outer-spin-button {
-  margin: 0;
-  appearance: none;
-  -webkit-appearance: none;
+.medicine-unit {
+  position: relative;
+  width: 56px;
 }
 
 .medicine-row__unit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
   height: 32px;
-  padding: 0 8px;
-  border: 1px solid var(--jh-color-border);
-  border-radius: var(--jh-radius-sm);
-  font-size: 16px;
-  background: var(--jh-color-bg-surface);
+  width: 56px;
+  padding: 0 8px 0 12px;
+  border: 1px solid #d0d5d9;
+  border-radius: 4px;
+  color: #3c4449;
+  font-size: 14px;
+  line-height: 22px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.medicine-row__unit:hover,
+.medicine-row__unit:focus-visible {
+  border-color: #006ef9;
+  outline: none;
+}
+
+.medicine-row__unit-arrow {
+  color: #848f9a;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.medicine-unit-menu {
+  position: absolute;
+  z-index: 16;
+  top: calc(100% + 6px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 66px;
+  padding: 8px;
+  border: 1px solid #d8dde1;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 16px 40px -16px rgba(16, 42, 67, 0.14), 0 4px 8px -2px rgba(16, 42, 67, 0.08);
+}
+
+.medicine-unit-menu__item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  min-height: 24px;
+  padding: 2px 8px;
+  border: 0;
+  border-radius: 4px;
+  color: rgba(0, 0, 0, 0.6);
+  font: inherit;
+  font-size: 12px;
+  line-height: 20px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.medicine-unit-menu__item.is-active {
+  color: #fff;
+  background: #006ef9;
 }
 
 .medicine-row__remove {
