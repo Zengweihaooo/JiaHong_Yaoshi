@@ -59,8 +59,9 @@ const consultStore = useConsultStore();
 function selectType(type) {
   if (type !== "western") return;
   consultStore.setConsultType(type);
+  consultStore.setConsultSource("text");
   emit("close");
-  router.push({ name: "quick-consult", query: { type } });
+  router.push({ name: "quick-consult", query: { type, source: "text" } });
 }
 </script>
 

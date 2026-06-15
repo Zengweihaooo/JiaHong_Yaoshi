@@ -402,6 +402,7 @@ const patientNameInput = ref(null);
 const confirmDiagnosisSelections = reactive({});
 
 const consultType = computed(() => route.query.type || consultStore.consultType || "western");
+const consultSource = computed(() => route.query.source || consultStore.consultSource || "text");
 const medicinePlaceholder = computed(() =>
   !canEditMedicine.value
     ? "请将基本信息填写完整后再进行录药"
@@ -748,9 +749,43 @@ function confirmDiagnosesAndSubmit() {
   goTextConsult();
 }
 
+function genderLabel(gender) {
+  return gender === "female" ? "女" : "男";
+}
+
 function goTextConsult() {
   showConfirmDialog.value = false;
-  router.push({ name: "text-consult" });
+  consultStore.setVisitInfo({
+    patientName: form.patientName.trim(),
+    gender: form.gender,
+    genderLabel: genderLabel(form.gender),
+    age: String(form.age).trim(),
+    weight: String(form.weight).trim(),
+    phone: form.phone.trim(),
+    idCard: form.idCard.trim(),
+    guardianName: form.guardianName.trim(),
+    guardianIdCard: form.guardianIdCard.trim(),
+    diagnoses: [...form.diagnoses],
+    medicines: form.medicines.map((item) => ({
+      id: item.id,
+      type: item.type,
+      typeLabel: medicineTypeLabel(item.type),
+      name: item.name,
+      spec: item.spec,
+      qty: item.qty,
+      unit: item.unit
+    })),
+    allergy: form.allergy,
+    allergyDetail: form.allergyDetail.trim(),
+    liverAbnormal: form.liverAbnormal,
+    liverDetail: form.liverDetail.trim(),
+    kidneyAbnormal: form.kidneyAbnormal,
+    kidneyDetail: form.kidneyDetail.trim(),
+    pregnancy: form.pregnancy,
+    remark: form.remark.trim(),
+    source: consultSource.value === "convenient" ? "convenient" : "text"
+  });
+  router.push({ name: "text-consult", query: { source: consultSource.value === "convenient" ? "convenient" : "text" } });
 }
 
 watch(

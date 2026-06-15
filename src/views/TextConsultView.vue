@@ -55,12 +55,14 @@
                   </header>
                   <dl>
                     <dt>患者信息</dt>
-                    <dd>黄黄，女，23岁</dd>
+                    <dd>{{ patientSummary }}</dd>
                     <dt>咨询药品</dt>
-                    <dd>草酸艾司西酞普兰片，10mg*7片，2盒</dd>
-                    <dd>感冒片，0.5g*24片，1盒</dd>
+                    <template v-if="medicineLines.length">
+                      <dd v-for="line in medicineLines" :key="line">{{ line }}</dd>
+                    </template>
+                    <dd v-else>暂无</dd>
                     <dt>是否有过敏史</dt>
-                    <dd>无</dd>
+                    <dd>{{ allergySummary }}</dd>
                   </dl>
                 </div>
                 <span class="tc-visit-card__badge">W</span>
@@ -129,7 +131,11 @@
             </footer>
           </section>
 
-          <aside class="tc-reminder" aria-label="用药提醒">
+          <aside v-if="isConvenientConsult" class="tc-video-sidebar" aria-label="视频问诊">
+            <img :src="convenientVideoImage" alt="视频问诊医生画面" />
+          </aside>
+
+          <aside v-else class="tc-reminder" aria-label="用药提醒">
             <section class="tc-reminder__intro">
               <h2>用药提醒</h2>
               <p>
@@ -177,11 +183,14 @@
 </template>
 
 <script setup>
-import { defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { Button, assetUrl } from "@jiahong/ui";
+import { useConsultStore } from "@/stores/consult";
 
 const router = useRouter();
+const route = useRoute();
+const consultStore = useConsultStore();
 const showDoctorFollowUp = ref(false);
 const prescriptionReady = ref(false);
 const showCancelDialog = ref(false);
@@ -190,6 +199,7 @@ const chatScrollRef = ref(null);
 let followTimer;
 
 const doctorAvatar = "/images/pu-test.png";
+const convenientVideoImage = "https://www.figma.com/api/mcp/asset/eaa8174d-5163-4383-8063-943885643861";
 
 const mentalWarnings = [
   "近期出现情绪明显低落、焦虑加重、惊恐发作、失眠或异常兴奋",
@@ -213,6 +223,40 @@ const coldSafety = [
   "请勿与成分类似的其他感冒药同时使用",
   "服药期间请避免饮酒或含酒精饮料"
 ];
+
+const visitInfo = computed(() => consultStore.visitInfo || {});
+const hasVisitInfo = computed(() => Boolean(consultStore.visitInfo));
+const isConvenientConsult = computed(() => {
+  return route.query.source === "convenient" || visitInfo.value.source === "convenient" || consultStore.consultSource === "convenient";
+});
+
+const patientSummary = computed(() => {
+  const info = visitInfo.value;
+  const name = info.patientName || "黄黄";
+  const gender = info.genderLabel || (info.gender === "male" ? "男" : "女");
+  const age = info.age ? `${info.age}岁` : "23岁";
+  return `${name}，${gender}，${age}`;
+});
+
+const medicineLines = computed(() => {
+  const medicines = Array.isArray(visitInfo.value.medicines) ? visitInfo.value.medicines : [];
+  if (!medicines.length && !hasVisitInfo.value) {
+    return ["草酸艾司西酞普兰片，10mg*7片，2盒", "感冒片，0.5g*24片，1盒"];
+  }
+  return medicines.map((item) => {
+    const spec = item.spec ? `，${item.spec}` : "";
+    const qty = item.qty && item.unit ? `，${item.qty}${item.unit}` : "";
+    return `${item.name || "未命名药品"}${spec}${qty}`;
+  });
+});
+
+const allergySummary = computed(() => {
+  const info = visitInfo.value;
+  if (info.allergy === "yes") {
+    return info.allergyDetail || "有";
+  }
+  return "无";
+});
 
 const MedicationReminder = defineComponent({
   name: "MedicationReminder",
@@ -391,7 +435,7 @@ onBeforeUnmount(() => {
 
 .tc-shell__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 450px);
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 455px);
   height: calc(100% - 58px);
   min-height: 0;
 }
@@ -486,45 +530,94 @@ onBeforeUnmount(() => {
   position: relative;
   display: flex;
   justify-content: flex-end;
-  width: min(460px, calc(100% - 76px));
-  min-height: 252px;
+  width: 384px;
+  height: 226px;
+  min-height: 226px;
   margin: 22px 52px 0 auto;
-  border: 1px solid #cfe0ff;
-  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #d1e5fe;
+  border-radius: 6px;
   background:
-    radial-gradient(circle at 78% 72%, rgba(220, 245, 255, 0.82) 0, rgba(220, 245, 255, 0.36) 20%, transparent 48%),
-    linear-gradient(135deg, #fff 0%, #fbfdff 52%, #eef8ff 100%);
-  box-shadow: 0 1px 4px rgba(60, 120, 220, 0.12);
+    radial-gradient(ellipse at 82% 66%, rgba(210, 241, 255, 0.62) 0 18%, rgba(210, 241, 255, 0.2) 36%, transparent 58%),
+    radial-gradient(ellipse at 94% 58%, rgba(85, 180, 255, 0.16) 0 9%, transparent 34%),
+    linear-gradient(158deg, rgba(0, 111, 255, 0.032) 6%, rgba(0, 111, 255, 0) 29%),
+    linear-gradient(155deg, #fff 3%, rgba(255, 255, 255, 0.7) 97%);
+  box-shadow: 0 6px 16px -8px rgba(16, 42, 67, 0.08), 0 1px 3px rgba(16, 42, 67, 0.05);
+}
+
+.tc-visit-card::before,
+.tc-visit-card::after {
+  position: absolute;
+  right: -12px;
+  bottom: 18px;
+  width: 216px;
+  height: 96px;
+  border: 2px solid rgba(160, 220, 255, 0.2);
+  border-radius: 50%;
+  content: "";
+  transform: rotate(-18deg);
+}
+
+.tc-visit-card::after {
+  right: 26px;
+  bottom: 36px;
+  width: 92px;
+  height: 92px;
+  border-width: 18px;
+  border-color: rgba(219, 246, 255, 0.56);
+  box-shadow: inset 0 0 0 14px rgba(198, 237, 255, 0.22);
 }
 
 .tc-visit-card__content {
+  position: relative;
+  z-index: 1;
   flex: 1;
-  padding: 24px 28px;
+  padding: 21px 26px;
 }
 
 .tc-visit-card__title {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 14px;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .tc-visit-card__icon {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
+  width: 24px;
   height: 24px;
-  border-radius: 3px;
+  border-radius: 4px;
   color: #fff;
-  font-size: 12px;
+  font-size: 0;
+  background: transparent;
+}
+
+.tc-visit-card__icon::before {
+  position: absolute;
+  inset: 3px 5px;
+  border-radius: 2px;
   background: #1476ff;
+  content: "";
+}
+
+.tc-visit-card__icon::after {
+  position: absolute;
+  left: 10px;
+  top: 7px;
+  width: 7px;
+  height: 7px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  content: "";
 }
 
 .tc-visit-card__title strong {
   color: rgba(0, 0, 0, 0.9);
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 24px;
 }
 
@@ -533,17 +626,17 @@ onBeforeUnmount(() => {
 }
 
 .tc-visit-card dt {
-  margin-top: 10px;
-  color: rgba(0, 0, 0, 0.35);
-  font-size: 13px;
+  margin-top: 8px;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 12px;
   line-height: 20px;
 }
 
 .tc-visit-card dd {
-  margin: 4px 0 0;
+  margin: 0;
   color: rgba(0, 0, 0, 0.9);
-  font-size: 14px;
-  line-height: 24px;
+  font-size: 12px;
+  line-height: 20px;
 }
 
 .tc-visit-card__badge {
@@ -654,7 +747,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  width: min(384px, 100%);
+  width: 384px;
   height: 126px;
   margin: 14px 0 0 52px;
   padding: 18px 32px 22px;
@@ -664,7 +757,7 @@ onBeforeUnmount(() => {
   background:
     linear-gradient(180deg, rgba(199, 231, 255, 0.2) 0%, rgba(255, 255, 255, 0.2) 70%),
     linear-gradient(90deg, #fff 0%, #fff 100%);
-  box-shadow: 0 6px 16px -8px rgba(16, 42, 67, 0.08), 0 1px 3px rgba(16, 42, 67, 0.05);
+  box-shadow: 0 6px 8px rgba(16, 42, 67, 0.08), 0 1px 1.5px rgba(16, 42, 67, 0.05);
   cursor: pointer;
 }
 
@@ -699,16 +792,16 @@ onBeforeUnmount(() => {
   width: 85px;
   height: 86px;
   border-radius: 18px;
-  background: linear-gradient(180deg, #c8e6ff 0%, #5aa2ff 100%);
-  box-shadow: inset 0 14px 18px rgba(255, 255, 255, 0.38);
+  background: linear-gradient(180deg, #c9e8ff 0%, #64a9ff 68%, #5b9cf5 100%);
+  box-shadow: inset 0 14px 18px rgba(255, 255, 255, 0.38), 0 12px 18px rgba(58, 137, 242, 0.12);
 }
 
 .tc-print-card__icon::before,
 .tc-print-card__icon::after {
   position: absolute;
-  left: 26px;
-  width: 36px;
-  height: 6px;
+  left: 28px;
+  width: 34px;
+  height: 5px;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.72);
   content: "";
@@ -719,19 +812,19 @@ onBeforeUnmount(() => {
 }
 
 .tc-print-card__icon::after {
-  top: 40px;
+  top: 39px;
 }
 
 .tc-print-card__paper {
   position: absolute;
   left: 14px;
-  bottom: 19px;
+  bottom: 18px;
   width: 56px;
-  height: 42px;
-  border: 7px solid rgba(35, 126, 238, 0.65);
+  height: 44px;
+  border: 8px solid rgba(39, 128, 234, 0.72);
   border-top: 0;
-  border-radius: 0 0 10px 10px;
-  transform: rotate(42deg) skew(-7deg, -7deg);
+  border-radius: 0 0 9px 9px;
+  transform: rotate(42deg) skew(-6deg, -6deg);
   transform-origin: center;
 }
 
@@ -846,6 +939,20 @@ onBeforeUnmount(() => {
   overflow: auto;
   border-left: 1px solid #e5e6eb;
   background: #fcfcfc;
+}
+
+.tc-video-sidebar {
+  min-width: 0;
+  overflow: hidden;
+  border-left: 1px solid #e5e6eb;
+  background: #f8f8fa;
+}
+
+.tc-video-sidebar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .tc-reminder__intro h2 {
@@ -1192,8 +1299,12 @@ onBeforeUnmount(() => {
     padding: 22px 20px;
   }
 
+  .tc-video-sidebar img {
+    object-position: center top;
+  }
+
   .tc-visit-card {
-    width: min(420px, calc(100% - 70px));
+    width: 384px;
     margin-right: 50px;
   }
 }
@@ -1213,6 +1324,12 @@ onBeforeUnmount(() => {
   }
 
   .tc-reminder {
+    border-left: 0;
+    border-top: 1px solid #e5e6eb;
+  }
+
+  .tc-video-sidebar {
+    min-height: 520px;
     border-left: 0;
     border-top: 1px solid #e5e6eb;
   }

@@ -36,61 +36,154 @@
               type="button"
               @click="datePickerOpen = !datePickerOpen"
             >
-              <span>开始日期时间</span>
+              <span :class="{ 'has-value': selectedStartDate }">{{ selectedStartLabel }}</span>
               <b>-</b>
-              <span>结束日期时间</span>
+              <span :class="{ 'has-value': selectedEndDate }">{{ selectedEndLabel }}</span>
               <span class="calendar-icon" aria-hidden="true">□</span>
             </button>
             <div v-if="datePickerOpen" class="date-picker-popover">
-              <div class="date-picker-popover__header">
-                <button type="button">‹</button>
-                <strong>2026 年 06 月</strong>
-                <button type="button">›</button>
-              </div>
-              <div class="date-picker-popover__week">
-                <span>一</span>
-                <span>二</span>
-                <span>三</span>
-                <span>四</span>
-                <span>五</span>
-                <span>六</span>
-                <span>日</span>
-              </div>
-              <div class="date-picker-popover__days">
-                <button v-for="day in 30" :key="day" type="button" :class="{ 'is-picked': day === 11 }">
-                  {{ day }}
-                </button>
-              </div>
-              <div class="date-picker-popover__footer">
-                <button type="button" @click.stop="datePickerOpen = false">取消</button>
-                <button type="button" @click.stop="datePickerOpen = false">确定</button>
-              </div>
+              <section v-for="calendar in calendars" :key="calendar.key" class="date-picker-calendar">
+                <header class="date-picker-calendar__header">
+                  <button class="date-select" type="button">{{ calendar.monthLabel }}<span>⌄</span></button>
+                  <button class="date-select" type="button">{{ calendar.year }}<span>⌄</span></button>
+                  <div class="date-controller">
+                    <button type="button" @click.stop="shiftCalendar(-1)">‹</button>
+                    <button type="button" @click.stop="resetCalendar">○</button>
+                    <button type="button" @click.stop="shiftCalendar(1)">›</button>
+                  </div>
+                </header>
+                <div class="date-picker-week">
+                  <span v-for="label in weekLabels" :key="label">{{ label }}</span>
+                </div>
+                <div class="date-picker-grid">
+                  <button
+                    v-for="cell in calendar.days"
+                    :key="cell.key"
+                    class="date-cell"
+                    :class="dateCellClass(cell)"
+                    type="button"
+                    @click.stop="selectDate(cell)"
+                  >
+                    <span>{{ cell.day }}</span>
+                  </button>
+                </div>
+              </section>
             </div>
           </label>
 
           <label class="filter-field">
             <span class="filter-label">问诊类型</span>
-            <button class="select-control" type="button">全部<span>⌄</span></button>
+            <button
+              class="select-control"
+              :class="{ 'is-active': openSelectKey === 'consultType' }"
+              type="button"
+              @click.prevent="toggleSelect('consultType')"
+            >
+              {{ selectValues.consultType }}<span>⌄</span>
+            </button>
+            <div v-if="openSelectKey === 'consultType'" class="select-popover">
+              <button
+                v-for="option in selectOptions.consultType"
+                :key="option"
+                :class="{ 'is-selected': selectValues.consultType === option }"
+                type="button"
+                @click.prevent="chooseSelect('consultType', option)"
+              >
+                {{ option }}
+              </button>
+            </div>
           </label>
 
           <label class="filter-field">
             <span class="filter-label">问诊状态</span>
-            <button class="select-control" type="button">全部<span>⌄</span></button>
+            <button
+              class="select-control"
+              :class="{ 'is-active': openSelectKey === 'consultStatus' }"
+              type="button"
+              @click.prevent="toggleSelect('consultStatus')"
+            >
+              {{ selectValues.consultStatus }}<span>⌄</span>
+            </button>
+            <div v-if="openSelectKey === 'consultStatus'" class="select-popover">
+              <button
+                v-for="option in selectOptions.consultStatus"
+                :key="option"
+                :class="{ 'is-selected': selectValues.consultStatus === option }"
+                type="button"
+                @click.prevent="chooseSelect('consultStatus', option)"
+              >
+                {{ option }}
+              </button>
+            </div>
           </label>
 
           <label class="filter-field">
             <span class="filter-label">支付状态</span>
-            <button class="select-control" type="button">全部<span>⌄</span></button>
+            <button
+              class="select-control"
+              :class="{ 'is-active': openSelectKey === 'paymentStatus' }"
+              type="button"
+              @click.prevent="toggleSelect('paymentStatus')"
+            >
+              {{ selectValues.paymentStatus }}<span>⌄</span>
+            </button>
+            <div v-if="openSelectKey === 'paymentStatus'" class="select-popover">
+              <button
+                v-for="option in selectOptions.paymentStatus"
+                :key="option"
+                :class="{ 'is-selected': selectValues.paymentStatus === option }"
+                type="button"
+                @click.prevent="chooseSelect('paymentStatus', option)"
+              >
+                {{ option }}
+              </button>
+            </div>
           </label>
 
           <label class="filter-field">
             <span class="filter-label">审方状态</span>
-            <button class="select-control" type="button">全部<span>⌄</span></button>
+            <button
+              class="select-control"
+              :class="{ 'is-active': openSelectKey === 'auditStatus' }"
+              type="button"
+              @click.prevent="toggleSelect('auditStatus')"
+            >
+              {{ selectValues.auditStatus }}<span>⌄</span>
+            </button>
+            <div v-if="openSelectKey === 'auditStatus'" class="select-popover select-popover--tall">
+              <button
+                v-for="option in selectOptions.auditStatus"
+                :key="option"
+                :class="{ 'is-selected': selectValues.auditStatus === option }"
+                type="button"
+                @click.prevent="chooseSelect('auditStatus', option)"
+              >
+                {{ option }}
+              </button>
+            </div>
           </label>
 
           <label class="filter-field">
             <span class="filter-label">药品实名</span>
-            <button class="select-control" type="button">全部<span>⌄</span></button>
+            <button
+              class="select-control"
+              :class="{ 'is-active': openSelectKey === 'realName' }"
+              type="button"
+              @click.prevent="toggleSelect('realName')"
+            >
+              {{ selectValues.realName }}<span>⌄</span>
+            </button>
+            <div v-if="openSelectKey === 'realName'" class="select-popover">
+              <button
+                v-for="option in selectOptions.realName"
+                :key="option"
+                :class="{ 'is-selected': selectValues.realName === option }"
+                type="button"
+                @click.prevent="chooseSelect('realName', option)"
+              >
+                {{ option }}
+              </button>
+            </div>
           </label>
 
           <label class="filter-field">
@@ -105,12 +198,48 @@
 
           <label class="filter-field">
             <span class="filter-label">药品名称</span>
-            <button class="select-control" type="button">全部<span>⌄</span></button>
+            <button
+              class="select-control"
+              :class="{ 'is-active': openSelectKey === 'medicineName' }"
+              type="button"
+              @click.prevent="toggleSelect('medicineName')"
+            >
+              {{ selectValues.medicineName }}<span>⌄</span>
+            </button>
+            <div v-if="openSelectKey === 'medicineName'" class="select-popover">
+              <button
+                v-for="option in selectOptions.medicineName"
+                :key="option"
+                :class="{ 'is-selected': selectValues.medicineName === option }"
+                type="button"
+                @click.prevent="chooseSelect('medicineName', option)"
+              >
+                {{ option }}
+              </button>
+            </div>
           </label>
 
           <label class="filter-field">
             <span class="filter-label">问诊号</span>
-            <button class="select-control" type="button">全部<span>⌄</span></button>
+            <button
+              class="select-control"
+              :class="{ 'is-active': openSelectKey === 'consultNo' }"
+              type="button"
+              @click.prevent="toggleSelect('consultNo')"
+            >
+              {{ selectValues.consultNo }}<span>⌄</span>
+            </button>
+            <div v-if="openSelectKey === 'consultNo'" class="select-popover">
+              <button
+                v-for="option in selectOptions.consultNo"
+                :key="option"
+                :class="{ 'is-selected': selectValues.consultNo === option }"
+                type="button"
+                @click.prevent="chooseSelect('consultNo', option)"
+              >
+                {{ option }}
+              </button>
+            </div>
           </label>
 
           <div class="filter-actions">
@@ -125,9 +254,11 @@
             <Button variant="primary" size="md">批量下载</Button>
             <Button variant="primary" size="md">批量打印</Button>
             <Button variant="primary" size="md">批量下载药品实名问诊</Button>
-            <button class="browse-action" type="button">浏览设置<span>⌄</span></button>
           </div>
-          <button class="history-action" type="button">历史记录<span>?</span></button>
+          <div class="history-wrap">
+            <button class="history-action" type="button">历史记录<span>?</span></button>
+            <div class="history-tooltip">2023年1月1日之前的历史记录请在此查询</div>
+          </div>
         </div>
       </section>
 
@@ -165,7 +296,7 @@
                 <th>支付状态</th>
                 <th>审方状态</th>
                 <th>药品实名</th>
-                <th class="operations">操作</th>
+                <th class="operations-title">操作</th>
               </tr>
             </thead>
             <tbody>
@@ -231,12 +362,148 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
 import { Button, assetUrl } from "@jiahong/ui";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
 const datePickerOpen = ref(false);
+const calendarStartMonth = ref(new Date(2026, 5, 1));
+const selectedStartDate = ref(null);
+const selectedEndDate = ref(null);
+const openSelectKey = ref("");
+const selectValues = ref({
+  consultType: "全部",
+  consultStatus: "全部",
+  paymentStatus: "全部",
+  auditStatus: "全部",
+  realName: "全部",
+  medicineName: "全部",
+  consultNo: "全部"
+});
+const selectOptions = {
+  consultType: ["全部", "图文问诊", "视频问诊"],
+  consultStatus: ["全部", "完成问诊", "取消问诊"],
+  paymentStatus: ["全部", "无", "未支付", "已支付"],
+  auditStatus: ["全部", "未申请", "待修改", "未审核", "未签名", "已完成", "已作废"],
+  realName: ["全部", "是", "否"],
+  medicineName: ["全部", "草酸艾司西酞普兰片", "感冒片", "感冒灵胶囊"],
+  consultNo: ["全部", "XXXXXX"]
+};
+
+const weekLabels = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+const calendars = computed(() => {
+  const first = monthStart(calendarStartMonth.value);
+  const second = addMonths(first, 1);
+  return [first, second].map((month) => ({
+    key: `${month.getFullYear()}-${month.getMonth()}`,
+    year: month.getFullYear(),
+    monthLabel: monthLabels[month.getMonth()],
+    days: buildCalendarDays(month)
+  }));
+});
+
+const selectedStartLabel = computed(() => selectedStartDate.value ? formatDateLabel(selectedStartDate.value) : "开始日期时间");
+const selectedEndLabel = computed(() => selectedEndDate.value ? formatDateLabel(selectedEndDate.value) : "结束日期时间");
+
+function monthStart(date) {
+  return new Date(date.getFullYear(), date.getMonth(), 1);
+}
+
+function addMonths(date, amount) {
+  return new Date(date.getFullYear(), date.getMonth() + amount, 1);
+}
+
+function addDays(date, amount) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount);
+}
+
+function dateKey(date) {
+  const year = date.getFullYear();
+  const month = `${date.getMonth() + 1}`.padStart(2, "0");
+  const day = `${date.getDate()}`.padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateLabel(date) {
+  return dateKey(date);
+}
+
+function buildCalendarDays(month) {
+  const firstDay = monthStart(month);
+  const firstGridDay = addDays(firstDay, -firstDay.getDay());
+  return Array.from({ length: 42 }, (_, index) => {
+    const date = addDays(firstGridDay, index);
+    return {
+      key: dateKey(date),
+      day: date.getDate(),
+      date,
+      time: date.getTime(),
+      isCurrentMonth: date.getMonth() === month.getMonth()
+    };
+  });
+}
+
+function isSameDate(a, b) {
+  return Boolean(a && b && dateKey(a) === dateKey(b));
+}
+
+function normalizedRange() {
+  if (!selectedStartDate.value || !selectedEndDate.value) return null;
+  const start = selectedStartDate.value.getTime() <= selectedEndDate.value.getTime()
+    ? selectedStartDate.value
+    : selectedEndDate.value;
+  const end = start === selectedStartDate.value ? selectedEndDate.value : selectedStartDate.value;
+  return { start, end };
+}
+
+function selectDate(cell) {
+  const date = new Date(cell.date);
+  if (!selectedStartDate.value || selectedEndDate.value) {
+    selectedStartDate.value = date;
+    selectedEndDate.value = null;
+    return;
+  }
+  if (date.getTime() < selectedStartDate.value.getTime()) {
+    selectedEndDate.value = selectedStartDate.value;
+    selectedStartDate.value = date;
+  } else {
+    selectedEndDate.value = date;
+  }
+}
+
+function dateCellClass(cell) {
+  const range = normalizedRange();
+  const isStart = isSameDate(cell.date, selectedStartDate.value);
+  const isEnd = isSameDate(cell.date, selectedEndDate.value);
+  const isInRange = range && cell.time > range.start.getTime() && cell.time < range.end.getTime();
+  return {
+    "is-muted": !cell.isCurrentMonth,
+    "is-picked": isStart || isEnd,
+    "is-range-start": isStart && selectedEndDate.value,
+    "is-range-end": isEnd,
+    "is-in-range": isInRange
+  };
+}
+
+function shiftCalendar(amount) {
+  calendarStartMonth.value = addMonths(calendarStartMonth.value, amount);
+}
+
+function resetCalendar() {
+  calendarStartMonth.value = new Date(2026, 5, 1);
+}
+
+function toggleSelect(key) {
+  openSelectKey.value = openSelectKey.value === key ? "" : key;
+}
+
+function chooseSelect(key, option) {
+  selectValues.value[key] = option;
+  openSelectKey.value = "";
+}
 
 const records = [
   {
@@ -445,6 +712,8 @@ const records = [
 }
 
 .records-main {
+  width: 1440px;
+  margin: 0 auto;
   padding: 24px;
 }
 
@@ -490,8 +759,8 @@ const records = [
 .date-range-control {
   display: flex;
   align-items: center;
-  width: 196px;
-  flex: 0 0 196px;
+  width: 157px;
+  flex: 0 0 157px;
   height: 44px;
   border: 1px solid #d8dde1;
   border-radius: 5px;
@@ -508,8 +777,8 @@ const records = [
 }
 
 .filter-field--date .date-range-control {
-  width: 506px;
-  flex-basis: 506px;
+  width: 405px;
+  flex-basis: 405px;
 }
 
 .filter-field input::placeholder,
@@ -518,10 +787,20 @@ const records = [
   color: #9aa3ad;
 }
 
+.date-range-control span.has-value {
+  color: #111820;
+}
+
 .select-control {
+  position: relative;
   justify-content: space-between;
   padding: 0 16px;
   cursor: pointer;
+}
+
+.select-control.is-active {
+  border-color: #1478ff;
+  box-shadow: 0 0 0 1px rgb(20 120 255 / 12%);
 }
 
 .select-control:hover,
@@ -537,11 +816,52 @@ const records = [
 }
 
 .select-control span,
-.browse-action span,
 .ghost-action span {
+  display: inline-block;
   margin-left: 10px;
   color: #0f1720;
   font-size: 18px;
+  transition: transform 0.16s ease;
+}
+
+.select-control.is-active span {
+  transform: rotate(180deg);
+}
+
+.select-popover {
+  position: absolute;
+  top: 50px;
+  left: 84px;
+  z-index: 7;
+  width: 157px;
+  padding: 12px 0;
+  border-radius: 2px;
+  background: #fff;
+  box-shadow: 0 10px 22px rgb(15 23 42 / 12%);
+}
+
+.select-popover--tall {
+  padding: 12px 0 14px;
+}
+
+.select-popover button {
+  display: block;
+  width: 100%;
+  height: 42px;
+  padding: 0 22px;
+  border: 0;
+  color: #606872;
+  font: inherit;
+  font-size: 16px;
+  line-height: 42px;
+  text-align: left;
+  background: #fff;
+  cursor: pointer;
+}
+
+.select-popover button:hover,
+.select-popover button.is-selected {
+  color: #1478ff;
 }
 
 .date-range-control {
@@ -578,24 +898,31 @@ const records = [
   top: 52px;
   left: 84px;
   z-index: 5;
-  width: 506px;
-  padding: 16px;
-  border: 1px solid #d8dde1;
-  border-radius: 6px;
+  display: flex;
+  align-items: flex-start;
+  width: 490px;
+  padding: 18px 26px 18px;
+  border: 1px solid #e1e6eb;
+  border-radius: 8px;
   background: #fff;
-  box-shadow: 0 10px 28px rgb(15 23 42 / 14%);
+  box-shadow: 0 22px 46px rgb(15 23 42 / 26%), 0 6px 16px rgb(15 23 42 / 12%);
 }
 
-.date-picker-popover__header,
-.date-picker-popover__footer {
+.date-picker-calendar {
+  width: 193px;
+  flex: 0 0 193px;
+}
+
+.date-picker-calendar + .date-picker-calendar {
+  margin-left: 52px;
+}
+
+.date-picker-calendar__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-}
-
-.date-picker-popover__header {
-  color: #1f2933;
-  font-size: 15px;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .date-picker-popover button {
@@ -605,63 +932,127 @@ const records = [
   cursor: pointer;
 }
 
-.date-picker-popover__header button {
-  width: 32px;
-  height: 32px;
+.date-select {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 86px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid #e5e8eb !important;
   border-radius: 4px;
-  color: #59636e;
+  color: rgba(0, 0, 0, 0.9);
+  font-size: 12.6px;
+  line-height: 20px;
 }
 
-.date-picker-popover__week,
-.date-picker-popover__days {
+.date-select span {
+  margin-left: 10px;
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 10.8px;
+}
+
+.date-controller {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+.date-controller button {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  color: rgba(0, 0, 0, 0.9);
+  font-size: 12.6px;
+  line-height: 18px;
+}
+
+.date-controller button:hover {
+  background: #f2f5f8;
+}
+
+.date-picker-week {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  margin-top: 14px;
+  grid-template-columns: repeat(7, 26px);
+  justify-content: space-between;
+  column-gap: 0;
+  padding: 0;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 12.6px;
+  line-height: 18px;
   text-align: center;
 }
 
-.date-picker-popover__week {
-  color: #8a95a3;
-  font-size: 13px;
+.date-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 26px);
+  justify-content: space-between;
+  column-gap: 0;
+  row-gap: 8px;
+  padding: 12px 0 0;
 }
 
-.date-picker-popover__days button {
-  height: 34px;
-  border-radius: 4px;
-  color: #3c4449;
+.date-cell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  border-radius: 3px;
+  color: rgba(0, 0, 0, 0.9);
+  font-size: 12.6px;
+  line-height: 18px;
 }
 
-.date-picker-popover__days button:hover {
-  color: #1478ff;
-  background: #eef5ff;
+.date-cell span {
+  position: relative;
+  z-index: 2;
 }
 
-.date-picker-popover__days button.is-picked {
+.date-cell::before {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -5px;
+  right: -5px;
+  background: transparent;
+  content: "";
+}
+
+.date-cell:hover span {
+  color: #006ef9;
+}
+
+.date-cell.is-muted {
+  color: #99a4b1;
+}
+
+.date-cell.is-in-range::before,
+.date-cell.is-range-start::before,
+.date-cell.is-range-end::before {
+  background: #d1e5fe;
+}
+
+.date-cell.is-range-start::before {
+  left: 0;
+  border-radius: 3px 0 0 3px;
+}
+
+.date-cell.is-range-end::before {
+  right: 0;
+  border-radius: 0 3px 3px 0;
+}
+
+.date-cell.is-picked span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  border-radius: 3px;
   color: #fff;
-  background: #1478ff;
-}
-
-.date-picker-popover__footer {
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid #edf0f2;
-}
-
-.date-picker-popover__footer button {
-  min-width: 66px;
-  height: 34px;
-  border: 1px solid #d8dde1;
-  border-radius: 4px;
-  color: #59636e;
-}
-
-.date-picker-popover__footer button:last-child {
-  border-color: #1478ff;
-  color: #fff;
-  background: #1478ff;
+  background: #006ef9;
 }
 
 .filter-actions {
@@ -685,7 +1076,6 @@ const records = [
 }
 
 .ghost-action,
-.browse-action,
 .history-action {
   height: 44px;
   border: 1px solid #d8dde1;
@@ -701,17 +1091,21 @@ const records = [
   min-width: 110px;
 }
 
-.browse-action {
-  border-color: transparent;
-  color: #1478ff;
-}
-
 .history-action {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   min-width: 126px;
   color: #606872;
+}
+
+.history-action:hover {
+  border-color: #1478ff;
+  color: #1478ff;
+}
+
+.history-action:hover span {
+  background: #1478ff;
 }
 
 .history-action span {
@@ -725,6 +1119,31 @@ const records = [
   color: #fff;
   font-size: 12px;
   background: #6b7178;
+}
+
+.history-wrap {
+  position: relative;
+}
+
+.history-tooltip {
+  position: absolute;
+  right: 0;
+  bottom: 54px;
+  z-index: 8;
+  display: none;
+  width: 224px;
+  padding: 20px 22px;
+  border-radius: 2px;
+  color: #3c4449;
+  font-size: 16px;
+  line-height: 1.7;
+  text-align: left;
+  background: #fff;
+  box-shadow: 0 10px 26px rgb(15 23 42 / 12%);
+}
+
+.history-wrap:hover .history-tooltip {
+  display: block;
 }
 
 .records-table-card {
@@ -768,6 +1187,14 @@ const records = [
 
 .records-table .operations {
   border-left: 4px solid #e5e8eb;
+  text-align: left;
+  padding-left: 24px;
+}
+
+.records-table .operations-title {
+  border-left: 4px solid #e5e8eb;
+  text-align: center;
+  padding-left: 8px;
 }
 
 .fake-checkbox {
@@ -874,7 +1301,7 @@ const records = [
 }
 
 .operations button {
-  margin-right: 18px;
+  margin-right: 30px;
   padding: 0;
   border: 0;
   color: #1478ff;
