@@ -178,7 +178,7 @@
               <div class="right-field-control diagnosis-picker">
                 <input
                   v-model="form.diagnosisKeyword"
-                  class="jh-input-field jh-input-field--sm"
+                  class="jh-input-field jh-input-field--sm diagnosis-picker__input"
                   type="text"
                   placeholder="请输入线下已确诊的疾病名称"
                   @focus="showDiagnosisDropdown = true"
@@ -1208,6 +1208,36 @@ onBeforeUnmount(() => {
 
 .diagnosis-picker {
   position: relative;
+}
+
+.diagnosis-picker__input {
+  display: block;
+  width: 100%;
+  height: 40px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid var(--jh-color-border);
+  border-radius: var(--jh-radius-sm);
+  color: var(--jh-color-text);
+  font-family: var(--jh-font-family);
+  font-size: 16px;
+  line-height: 22px;
+  background: var(--jh-color-bg-surface);
+  box-shadow: none;
+  outline: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+.diagnosis-picker__input:hover {
+  border-color: #1f2933;
+}
+
+.diagnosis-picker__input:focus,
+.diagnosis-picker__input:focus-visible {
+  border-color: var(--jh-color-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--jh-color-primary) 18%, transparent);
+  outline: 0;
 }
 
 .selected-diagnosis-tags {
