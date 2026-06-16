@@ -100,7 +100,7 @@ const router = useRouter();
 
 <style scoped>
 .new-product-page {
-  min-height: 100vh;
+  min-height: var(--jh-viewport-height, 100vh);
   color: var(--jh-color-text);
   background: var(--jh-color-bg-page);
 }

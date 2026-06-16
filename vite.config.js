@@ -7,6 +7,8 @@ const base =
   process.env.GITHUB_ACTIONS && githubRepositoryName
     ? `/${githubRepositoryName}/`
     : "/";
+const projectRoot = fileURLToPath(new URL(".", import.meta.url));
+const sharedUiRoot = fileURLToPath(new URL("../JiaHong_UI", import.meta.url));
 
 export default defineConfig({
   base,
@@ -18,6 +20,9 @@ export default defineConfig({
   },
   server: {
     port: 5174,
-    open: false
+    open: false,
+    fs: {
+      allow: [projectRoot, sharedUiRoot]
+    }
   }
 });

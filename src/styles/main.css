@@ -1,5 +1,38 @@
 /* 药师端仅补充页面级布局，视觉基础来自 @jiahong/ui */
+:root {
+  --el-font-family: var(--jh-font-family);
+  --jh-viewport-height: 100vh;
+}
+
+@supports (height: 100dvh) {
+  :root {
+    --jh-viewport-height: 100dvh;
+  }
+}
+
+html,
 body {
+  width: 100%;
+  min-height: 100%;
   margin: 0;
   background: var(--jh-color-bg-page, #f4f5f6);
+}
+
+body {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+html {
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+#app {
+  min-height: 100%;
 }

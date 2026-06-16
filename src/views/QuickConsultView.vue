@@ -808,7 +808,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .quick-consult-page {
-  min-height: 100vh;
+  min-height: var(--jh-viewport-height, 100vh);
   background: #f5f5f5;
 }
 

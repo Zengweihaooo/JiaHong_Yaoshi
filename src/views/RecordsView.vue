@@ -637,7 +637,7 @@ const records = [
 
 <style scoped>
 .records-page {
-  min-height: 100vh;
+  min-height: var(--jh-viewport-height, 100vh);
   min-width: 1440px;
   color: var(--jh-color-text, #1f2933);
   background: var(--jh-color-bg-page, #f5f6f8);

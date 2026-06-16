@@ -326,7 +326,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .text-consult-page {
-  min-height: 100vh;
+  min-height: var(--jh-viewport-height, 100vh);
   color: #1f2329;
   background: #f5f5f5;
 }
@@ -376,7 +376,7 @@ onBeforeUnmount(() => {
 
 .tc-shell {
   width: 100%;
-  height: calc(100vh - 84px);
+  height: calc(var(--jh-viewport-height, 100vh) - 84px);
   min-height: 0;
   overflow: hidden;
   border-radius: 20px;

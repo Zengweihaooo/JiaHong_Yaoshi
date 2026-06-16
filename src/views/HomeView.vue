@@ -81,7 +81,7 @@ function spotStyle(spot) {
 
 <style scoped>
 .home-page {
-  min-height: 100vh;
+  min-height: var(--jh-viewport-height, 100vh);
   padding: var(--jh-space-md, 16px) 0;
   background: var(--jh-color-bg-page, #f4f5f6);
 }
