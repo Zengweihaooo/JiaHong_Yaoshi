@@ -538,6 +538,9 @@ const activeDiagnosisRules = computed(() => {
   const names = [...form.medicines.map((item) => item.name), form.medicineKeyword.trim()].filter(Boolean);
   return medicineDiagnosisRules.filter((rule) => names.some((name) => rule.match(name)));
 });
+const hasDiagnosisSuggestionContext = computed(() => {
+  return activeDiagnosisRules.value.length > 0 || form.medicines.length > 0 || Boolean(form.medicineKeyword.trim());
+});
 // 根据已录入药品生成 Figma 中“可选疾病”的候选、选中和禁用状态。
 const diagnosisSuggestionOptions = computed(() => {
   const labels = [];
@@ -546,11 +549,13 @@ const diagnosisSuggestionOptions = computed(() => {
       if (!labels.includes(label)) labels.push(label);
     });
   });
-  form.diagnoses.forEach((label) => {
-    if (!labels.includes(label)) labels.push(label);
-  });
   if (!labels.length && form.medicines.length) {
     commonDiagnoses.slice(0, 4).forEach((label) => labels.push(label));
+  }
+  if (hasDiagnosisSuggestionContext.value) {
+    form.diagnoses.forEach((label) => {
+      if (!labels.includes(label)) labels.push(label);
+    });
   }
 
   return labels.map((label) => ({
@@ -566,7 +571,7 @@ const commonDiagnosisOptions = computed(() =>
     disabled: isDiagnosisDisabled(label)
   }))
 );
-const showCommonDiagnosisDropdown = computed(() => diagnosisSuggestionOptions.value.length === 0);
+const showCommonDiagnosisDropdown = computed(() => !hasDiagnosisSuggestionContext.value);
 const diagnosisDropdownTitle = computed(() => (showCommonDiagnosisDropdown.value ? "常见疾病" : "可选疾病"));
 const diagnosisDropdownOptions = computed(() =>
   showCommonDiagnosisDropdown.value ? commonDiagnosisOptions.value : diagnosisSuggestionOptions.value
