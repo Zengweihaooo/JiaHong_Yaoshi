@@ -9,7 +9,7 @@
           </button>
         </header>
         <div class="consult-type-dialog__body">
-          <button class="consult-type-option" type="button" @click="selectType('western')">
+          <button class="consult-type-option consult-type-option--active" type="button" @click="selectType('western')">
             <span class="consult-type-option__icon consult-type-option__icon--western" aria-hidden="true">
               <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2" />
@@ -21,7 +21,7 @@
               <span>为您匹配专业西医，并开具中西成药</span>
             </span>
           </button>
-          <button class="consult-type-option" type="button" @click="selectType('tcm')">
+          <button class="consult-type-option consult-type-option--default" type="button" @click="selectType('tcm')">
             <span class="consult-type-option__icon consult-type-option__icon--tcm" aria-hidden="true">
               <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <rect x="10" y="14" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2" />
@@ -71,18 +71,22 @@ function selectType(type) {
   inset: 0;
   z-index: 2000;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
-  padding: var(--jh-space-md, 16px);
-  padding-top: 252px;
+  padding: 24px;
   background: rgba(0, 0, 0, 0.5);
 }
 
 .consult-type-dialog {
-  width: min(300px, calc(100vw - 32px));
-  border-radius: var(--jh-radius-lg, 8px);
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 365px;
+  height: 297px;
+  border-radius: 8px;
   background: var(--jh-color-bg-surface, #fff);
-  box-shadow: var(--jh-shadow-md);
+  box-shadow: 0 84px 64px -20px rgba(16, 42, 67, 0.18), 0 8px 16px -4px rgba(16, 42, 67, 0.1);
   overflow: hidden;
 }
 
@@ -90,29 +94,39 @@ function selectType(type) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px 8px;
+  flex: 0 0 69px;
+  width: 100%;
+  height: 69px;
+  padding: 12px 16px;
+  box-sizing: border-box;
+  border-radius: 8px 8px 0 0;
+  background: #fff;
 }
 
 .consult-type-dialog__header h2 {
   margin: 0;
-  color: var(--jh-color-text);
-  font-size: 13px;
-  font-weight: 500;
-  line-height: 20px;
+  color: #1e2939;
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 24px;
 }
 
 .consult-type-dialog__close {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   padding: 0;
   border: 0;
-  border-radius: var(--jh-radius-md, 6px);
-  color: var(--jh-color-muted);
+  border-radius: 4px;
+  color: #99a1af;
   background: transparent;
   cursor: pointer;
+}
+
+.consult-type-dialog__close .el-icon {
+  font-size: 20px;
 }
 
 .consult-type-dialog__close:hover {
@@ -122,27 +136,45 @@ function selectType(type) {
 .consult-type-dialog__body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 8px 18px 18px;
+  align-items: flex-start;
+  gap: 16px;
+  width: 100%;
+  height: 228px;
+  padding: 0 0 16px;
+  box-sizing: border-box;
 }
 
 .consult-type-option {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: 12px;
-  width: 100%;
-  min-height: 74px;
-  padding: 12px 14px;
-  border: 1px solid rgba(0, 110, 249, 0.18);
-  border-radius: var(--jh-radius-md, 6px);
+  box-sizing: border-box;
+  width: 322px;
+  height: 98px;
+  margin-left: 20px;
+  padding: 20px 16px;
+  border: 1px solid #006ef9;
+  border-radius: 8px;
   text-align: left;
-  background: color-mix(in srgb, var(--jh-color-primary) 5%, var(--jh-color-bg-surface));
+  background: #fff;
   cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.consult-type-option--active {
+  border-color: #006ef9;
+  background: #fff;
+}
+
+.consult-type-option--default {
+  border-color: #006ef9;
+  background: #fff;
 }
 
 .consult-type-option:hover {
-  border-color: var(--jh-color-primary);
+  border-color: #5eb3ff;
+  background: #f5fbff;
   box-shadow: 0 0 0 2px rgba(0, 110, 249, 0.08);
 }
 
@@ -151,41 +183,62 @@ function selectType(type) {
   flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  width: 38px;
-  height: 38px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   color: var(--jh-color-bg-surface);
-  background: var(--jh-color-primary);
+  background: #46aef7;
 }
 
 .consult-type-option__icon svg {
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
 }
 
 .consult-type-option__text {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 12px;
+  width: 230px;
+  height: 58px;
+  border-radius: 4px;
 }
 
 .consult-type-option__text strong {
-  color: var(--jh-color-primary);
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 20px;
+  width: 230px;
+  color: rgba(0, 0, 0, 0.9);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
 }
 
 .consult-type-option__text span {
-  color: var(--jh-color-muted);
-  font-size: 12px;
-  line-height: 18px;
+  width: 230px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  line-height: 22px;
 }
 
 @media (max-width: 720px) {
   .consult-type-overlay {
-    align-items: center;
-    padding-top: var(--jh-space-md, 16px);
+    padding: 16px;
+  }
+
+  .consult-type-dialog {
+    width: min(365px, calc(100vw - 32px));
+  }
+}
+
+@media (max-width: 400px) {
+  .consult-type-option {
+    width: calc(100% - 40px);
+  }
+
+  .consult-type-option__text,
+  .consult-type-option__text strong,
+  .consult-type-option__text span {
+    width: auto;
+    min-width: 0;
   }
 }
 </style>

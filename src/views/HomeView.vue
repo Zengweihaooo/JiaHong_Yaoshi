@@ -1,6 +1,6 @@
 <template>
   <div class="home-page">
-    <!-- 容器锁定 Figma 设计稿 1440×2807 比例，热区用百分比定位 -->
+    <!-- 容器保持 Figma 设计稿 1440×2807 比例，热区用百分比定位 -->
     <div class="home-page__canvas">
       <img
         class="home-page__image"
@@ -88,7 +88,7 @@ function spotStyle(spot) {
 
 .home-page__canvas {
   position: relative;
-  width: min(1440px, 100%);
+  width: min(1234px, 100%);
   margin: 0 auto;
   aspect-ratio: 1440 / 2807;
 }

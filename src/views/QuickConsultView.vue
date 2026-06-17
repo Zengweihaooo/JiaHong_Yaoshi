@@ -66,13 +66,21 @@
                       </button>
                     </div>
                   </div>
-                  <label class="form-field">
-                    <span class="form-field__label"><em>*</em>性别</span>
-                    <div class="form-field__inline">
-                      <label class="form-radio"><input v-model="form.gender" type="radio" value="male" /> 男</label>
-                      <label class="form-radio"><input v-model="form.gender" type="radio" value="female" /> 女</label>
+                  <div class="form-field form-field--gender" role="radiogroup" aria-labelledby="patient-gender-label">
+                    <span id="patient-gender-label" class="form-field__label form-field__label--gender"><em>*</em>性别</span>
+                    <div class="form-field__inline form-field__inline--gender">
+                      <label :class="['form-radio', { 'is-checked': form.gender === 'male' }]">
+                        <input v-model="form.gender" class="form-radio__input" type="radio" value="male" />
+                        <span class="form-radio__control" aria-hidden="true"></span>
+                        <span class="form-radio__label">男</span>
+                      </label>
+                      <label :class="['form-radio', { 'is-checked': form.gender === 'female' }]">
+                        <input v-model="form.gender" class="form-radio__input" type="radio" value="female" />
+                        <span class="form-radio__control" aria-hidden="true"></span>
+                        <span class="form-radio__label">女</span>
+                      </label>
                     </div>
-                  </label>
+                  </div>
                   <label class="form-field">
                     <span class="form-field__label"><em>*</em>年龄</span>
                     <input v-model="form.age" class="jh-input-field jh-input-field--sm" type="text" placeholder="请输入年龄（0-120）" />
@@ -1011,6 +1019,27 @@ onBeforeUnmount(() => {
   font-style: normal;
 }
 
+.form-field--gender {
+  grid-template-columns: 35px 92px;
+  align-items: center;
+  gap: 16px;
+  width: 143px;
+  min-height: 22px;
+}
+
+.form-field__label--gender {
+  width: 35px;
+  color: var(--jh-color-danger);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  text-align: left;
+}
+
+.form-field__label--gender em {
+  margin-right: 0;
+}
+
 .form-field__inline {
   display: flex;
   align-items: center;
@@ -1018,17 +1047,78 @@ onBeforeUnmount(() => {
   min-height: 40px;
 }
 
+.form-field__inline--gender {
+  gap: 16px;
+  width: 92px;
+  min-height: 22px;
+}
+
 .form-radio {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: var(--jh-color-text);
-  font-size: 16px;
+  gap: 8px;
+  width: 38px;
+  height: 22px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
   cursor: pointer;
 }
 
-.form-radio input {
-  accent-color: var(--jh-color-primary);
+.form-radio__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.form-radio__control {
+  position: relative;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #d8dde1;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.form-radio__control::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  transform: translate(-50%, -50%);
+  content: "";
+}
+
+.form-radio.is-checked .form-radio__control {
+  border-color: #006ef9;
+  background: #fff;
+}
+
+.form-radio.is-checked .form-radio__control::after {
+  background: #006ef9;
+}
+
+.form-radio__input:focus-visible + .form-radio__control {
+  outline: 2px solid rgba(0, 110, 249, 0.28);
+  outline-offset: 2px;
+}
+
+.form-radio__label {
+  width: 14px;
+  height: 22px;
 }
 
 .patient-name-control {
