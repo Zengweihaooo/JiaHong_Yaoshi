@@ -2120,6 +2120,13 @@ onBeforeUnmount(() => {
     grid-template-columns: 128px minmax(0, 1fr);
   }
 
+  .form-field--gender {
+    grid-template-columns: 35px 92px;
+    gap: 16px;
+    width: 143px;
+    min-height: 22px;
+  }
+
   .medicine-row {
     grid-template-columns: 1fr;
   }
