@@ -195,7 +195,7 @@
                   @click="showDiagnosisDropdown = true"
                 />
                 <TransitionGroup
-                  v-if="form.diagnoses.length"
+                  v-if="form.diagnoses.length && !hasPersistentDiagnosisOptions"
                   name="diagnosis-selected"
                   tag="div"
                   class="diagnosis-selected-tags"
@@ -215,7 +215,13 @@
                 <Transition name="diagnosis-dropdown-fade">
                   <div
                     v-if="showDiagnosisOptions"
-                    :class="['diagnosis-dropdown', { 'diagnosis-dropdown--common': showCommonDiagnosisDropdown }]"
+                    :class="[
+                      'diagnosis-dropdown',
+                      {
+                        'diagnosis-dropdown--common': showCommonDiagnosisDropdown,
+                        'diagnosis-dropdown--persistent': hasPersistentDiagnosisOptions
+                      }
+                    ]"
                   >
                     <p class="diagnosis-dropdown__label">{{ diagnosisDropdownTitle }}</p>
                     <div class="diagnosis-tags">
@@ -291,7 +297,7 @@
                   </div>
                   <span class="medicine-row__spec">{{ item.spec }}</span>
                   <div class="medicine-row__qty">
-                    <button class="qty-btn" type="button" :disabled="!canEditMedicine" @click="changeQty(item, -1)">−</button>
+                    <button class="qty-btn" type="button" :disabled="!canEditMedicine || item.qty <= 1" @click="changeQty(item, -1)">−</button>
                     <span class="qty-value">{{ item.qty }}</span>
                     <button class="qty-btn" type="button" :disabled="!canEditMedicine" @click="changeQty(item, 1)">+</button>
                   </div>
@@ -300,10 +306,11 @@
                       class="medicine-row__unit"
                       type="button"
                       :disabled="!canEditMedicine"
+                      :aria-expanded="activeUnitMedicineId === item.id"
                       @click="toggleUnitDropdown(item)"
                     >
                       <span>{{ item.unit }}</span>
-                      <span class="medicine-row__unit-arrow">⌄</span>
+                      <span class="medicine-row__unit-arrow" aria-hidden="true"></span>
                     </button>
                     <div v-if="activeUnitMedicineId === item.id" class="medicine-unit-menu">
                       <button
@@ -372,31 +379,37 @@
         <section class="submit-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="submit-confirm-title">
           <header class="submit-confirm-dialog__header">
             <h2 id="submit-confirm-title">疾病信息确认</h2>
-            <button class="submit-confirm-dialog__close" type="button" aria-label="关闭" @click="closeConfirmDialog">×</button>
+            <button class="submit-confirm-dialog__close" type="button" aria-label="关闭" @click="closeConfirmDialog">
+              <img :src="diagnosisConfirmCloseIcon" alt="" />
+            </button>
           </header>
 
           <div class="submit-confirm-dialog__warning">
-            您选择的药品与线下已确诊疾病不匹配，请重新确认用药人病情。
+            您选择的药品与线下已确诊疾病不匹配，请重新确认用药人的病情。
           </div>
 
           <div class="submit-confirm-dialog__body">
             <p class="submit-confirm-dialog__tip">
-              <span class="submit-confirm-dialog__tip-icon" aria-hidden="true">!</span>
+              <span class="submit-confirm-dialog__tip-icon" aria-hidden="true">
+                <img :src="diagnosisConfirmWarningIcon" alt="" />
+              </span>
               每个或每组药品至少选择一个疾病信息
             </p>
 
             <div class="submit-confirm-groups">
               <section v-for="group in diagnosisConfirmGroups" :key="group.id" class="submit-confirm-group">
-                <h3>{{ group.medicineName }}</h3>
-                <div class="submit-confirm-tags">
-                  <DiseaseOption
-                    v-for="option in group.options"
-                    :key="`${group.id}-${option.label}`"
-                    :label="option.label"
-                    :selected="isConfirmDiagnosisSelected(group.id, option.label)"
-                    :disabled="option.disabled"
-                    @click="toggleConfirmDiagnosis(group.id, option.label)"
-                  />
+                <div class="submit-confirm-group__card">
+                  <h3>{{ group.medicineName }}</h3>
+                  <div class="submit-confirm-tags">
+                    <DiseaseOption
+                      v-for="option in group.options"
+                      :key="`${group.id}-${option.label}`"
+                      :label="option.label"
+                      :selected="isConfirmDiagnosisSelected(group.id, option.label)"
+                      :disabled="option.disabled"
+                      @click="toggleConfirmDiagnosis(group.id, option.label)"
+                    />
+                  </div>
                 </div>
               </section>
             </div>
@@ -421,6 +434,8 @@ import { useRoute, useRouter } from "vue-router";
 import { ArrowLeft } from "@element-plus/icons-vue";
 import { Button, DiseaseOption } from "@jiahong/ui";
 import ToggleField from "@/components/quick-consult/ToggleField.vue";
+import diagnosisConfirmCloseIcon from "@/assets/figma-diagnosis-confirm/close.svg";
+import diagnosisConfirmWarningIcon from "@/assets/figma-diagnosis-confirm/exclamation.svg";
 import { useConsultStore } from "@/stores/consult";
 
 const router = useRouter();
@@ -561,6 +576,7 @@ const activeDiagnosisRules = computed(() => {
 const hasDiagnosisSuggestionContext = computed(() => {
   return activeDiagnosisRules.value.length > 0 || form.medicines.length > 0 || Boolean(form.medicineKeyword.trim());
 });
+const hasPersistentDiagnosisOptions = computed(() => form.medicines.length > 0);
 // 根据已录入药品生成 Figma 中“可选疾病”的候选、选中和禁用状态。
 const diagnosisSuggestionOptions = computed(() => {
   const labels = [];
@@ -596,7 +612,9 @@ const diagnosisDropdownTitle = computed(() => (showCommonDiagnosisDropdown.value
 const diagnosisDropdownOptions = computed(() =>
   showCommonDiagnosisDropdown.value ? commonDiagnosisOptions.value : diagnosisSuggestionOptions.value
 );
-const showDiagnosisOptions = computed(() => showDiagnosisDropdown.value && diagnosisDropdownOptions.value.length > 0);
+const showDiagnosisOptions = computed(
+  () => diagnosisDropdownOptions.value.length > 0 && (showDiagnosisDropdown.value || hasPersistentDiagnosisOptions.value)
+);
 const diagnosisConfirmGroups = computed(() => {
   return form.medicines
     .map((medicine) => {
@@ -1552,13 +1570,17 @@ onBeforeUnmount(() => {
 .diagnosis-dropdown {
   box-sizing: border-box;
   width: 100%;
-  margin-top: 12px;
+  margin-top: 8px;
   padding: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   overflow: visible;
+}
+
+.diagnosis-dropdown--persistent {
+  display: block;
 }
 
 .diagnosis-dropdown--common {
@@ -1940,6 +1962,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
+.qty-btn:disabled {
+  color: #c0c7cf;
+  background: #f3f5f6;
+}
+
 .medicine-row__qty:hover,
 .medicine-row__qty:focus-within {
   border-color: #006ef9;
@@ -1997,9 +2024,19 @@ onBeforeUnmount(() => {
 }
 
 .medicine-row__unit-arrow {
-  color: #848f9a;
-  font-size: 12px;
-  line-height: 1;
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-top: -3px;
+  border-right: 1.5px solid #848f9a;
+  border-bottom: 1.5px solid #848f9a;
+  transform: rotate(45deg);
+  transition: transform 0.16s ease;
+}
+
+.medicine-row__unit[aria-expanded="true"] .medicine-row__unit-arrow {
+  margin-top: 3px;
+  transform: rotate(225deg);
 }
 
 .medicine-unit-menu {
@@ -2234,73 +2271,97 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: center;
   padding: 24px;
-  background: rgba(19, 29, 43, 0.45);
+  background: rgba(122, 136, 152, 0.3);
 }
 
 .submit-confirm-dialog {
-  width: min(778px, calc(100vw - 48px));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  width: min(640px, calc(100vw - 48px));
   border-radius: 8px;
-  background: var(--jh-color-bg-surface);
+  background: #fff;
   overflow: hidden;
-  box-shadow: 0 20px 48px rgba(19, 29, 43, 0.22);
+  box-shadow: 0 84px 32px rgba(16, 42, 67, 0.18), 0 8px 8px rgba(16, 42, 67, 0.1);
 }
 
 .submit-confirm-dialog__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 64px;
-  padding: 0 20px;
-  border-bottom: 1px solid #e5e8eb;
-  background: #fff;
+  width: 100%;
+  height: 48px;
+  padding: 12px 16px 12.67px;
+  border-bottom: 0.67px solid rgba(229, 231, 235, 0.5);
+  border-radius: 8px 8px 0 0;
+  background: #f2f3f4;
+  box-shadow: 0 1px 1px rgba(16, 42, 67, 0.04);
+  box-sizing: border-box;
 }
 
 .submit-confirm-dialog__header h2 {
   margin: 0;
-  color: #1f2937;
-  font-size: 20px;
+  color: #1e2939;
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+  font-size: 16px;
   font-weight: 400;
   line-height: 24px;
 }
 
 .submit-confirm-dialog__close {
-  width: 32px;
-  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
   border: 0;
-  color: #8b98a7;
-  font-size: 34px;
-  line-height: 1;
   background: transparent;
   cursor: pointer;
 }
 
+.submit-confirm-dialog__close img {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
 .submit-confirm-dialog__close:hover {
-  background: var(--jh-color-bg-page);
+  opacity: 0.78;
 }
 
 .submit-confirm-dialog__warning {
-  padding: 10px 22px;
-  color: #ff6b1a;
-  font-size: 16px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 89px 6px 18px;
+  color: #fe8125;
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
   line-height: 24px;
-  background: #fff2df;
+  background: #fff3e5;
+  box-sizing: border-box;
 }
 
 .submit-confirm-dialog__body {
-  display: grid;
-  gap: 14px;
-  padding: 18px 30px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 24px 0;
   background: #fff;
+  box-sizing: border-box;
 }
 
 .submit-confirm-dialog__tip {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   margin: 0;
-  color: #ff6b1a;
-  font-size: 16px;
-  font-weight: 700;
+  color: #fe8125;
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 400;
   line-height: 24px;
 }
 
@@ -2309,49 +2370,70 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 24px;
-  height: 24px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
-  background: #ee7417;
+  background: #e37318;
+}
+
+.submit-confirm-dialog__tip-icon img {
+  display: block;
+  width: 12.5px;
+  height: 12.5px;
 }
 
 .submit-confirm-groups {
-  display: grid;
-  gap: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
 }
 
 .submit-confirm-group {
-  min-height: 96px;
-  padding: 14px 18px;
+  width: 100%;
+  padding-left: 28px;
+  box-sizing: border-box;
+}
+
+.submit-confirm-group__card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  min-height: 92px;
+  padding: 11px 15px;
   border-radius: 4px;
-  background: #f3f7fd;
+  background: #f5f9ff;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .submit-confirm-group h3 {
-  margin: 0 0 10px;
-  color: rgba(0, 0, 0, 0.48);
-  font-size: 16px;
+  margin: 0;
+  color: rgba(0, 0, 0, 0.6);
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+  font-size: 14px;
   font-weight: 400;
   line-height: 22px;
 }
 
 .submit-confirm-group :deep(.jh-disease-option) {
-  min-height: 34px;
-  padding: 4px 16px;
-  font-size: 16px;
-  line-height: 24px;
+  min-height: 28px;
+  padding: 4px 12px;
+  border-radius: 50px;
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .submit-confirm-empty {
-  padding: 32px 18px;
+  margin-left: 28px;
+  padding: 24px 15px;
   border-radius: 4px;
   color: var(--jh-color-muted);
-  font-size: 16px;
+  font-size: 14px;
   text-align: center;
-  background: #f3f7fd;
+  background: #f5f9ff;
 }
 
 .submit-confirm-row {
@@ -2372,6 +2454,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
   min-width: 0;
 }
 
@@ -2389,17 +2472,27 @@ onBeforeUnmount(() => {
 
 .submit-confirm-dialog__footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  padding: 0 30px 24px;
+  width: 100%;
+  height: 72px;
+  padding: 16px 24px 16px 10px;
   background: #fff;
+  box-sizing: border-box;
 }
 
 .submit-confirm-dialog__footer :deep(.jh-btn) {
-  width: 96px;
-  height: 56px;
-  border-radius: 10px;
-  font-size: 20px;
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+  height: 40px;
+  border-radius: 8px;
+  border-color: transparent;
+  background: linear-gradient(270deg, #3b92ff 0%, #006ef9 100%);
+  font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
+  font-size: 16px;
   font-weight: 700;
+  line-height: 24px;
 }
 
 </style>

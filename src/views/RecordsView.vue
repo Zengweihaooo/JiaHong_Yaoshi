@@ -44,8 +44,8 @@
             <div v-if="datePickerOpen" class="date-picker-popover">
               <section v-for="calendar in calendars" :key="calendar.key" class="date-picker-calendar">
                 <header class="date-picker-calendar__header">
-                  <button class="date-select" type="button">{{ calendar.monthLabel }}<span>⌄</span></button>
-                  <button class="date-select" type="button">{{ calendar.year }}<span>⌄</span></button>
+                  <button class="date-select" type="button">{{ calendar.monthLabel }}<span class="chevron-down" aria-hidden="true"></span></button>
+                  <button class="date-select" type="button">{{ calendar.year }}<span class="chevron-down" aria-hidden="true"></span></button>
                   <div class="date-controller">
                     <button type="button" @click.stop="shiftCalendar(-1)">‹</button>
                     <button type="button" @click.stop="resetCalendar">○</button>
@@ -79,7 +79,7 @@
               type="button"
               @click.prevent="toggleSelect('consultType')"
             >
-              {{ selectValues.consultType }}<span>⌄</span>
+              {{ selectValues.consultType }}<span class="chevron-down" aria-hidden="true"></span>
             </button>
             <div v-if="openSelectKey === 'consultType'" class="select-popover">
               <button
@@ -102,7 +102,7 @@
               type="button"
               @click.prevent="toggleSelect('consultStatus')"
             >
-              {{ selectValues.consultStatus }}<span>⌄</span>
+              {{ selectValues.consultStatus }}<span class="chevron-down" aria-hidden="true"></span>
             </button>
             <div v-if="openSelectKey === 'consultStatus'" class="select-popover">
               <button
@@ -125,7 +125,7 @@
               type="button"
               @click.prevent="toggleSelect('paymentStatus')"
             >
-              {{ selectValues.paymentStatus }}<span>⌄</span>
+              {{ selectValues.paymentStatus }}<span class="chevron-down" aria-hidden="true"></span>
             </button>
             <div v-if="openSelectKey === 'paymentStatus'" class="select-popover">
               <button
@@ -148,7 +148,7 @@
               type="button"
               @click.prevent="toggleSelect('auditStatus')"
             >
-              {{ selectValues.auditStatus }}<span>⌄</span>
+              {{ selectValues.auditStatus }}<span class="chevron-down" aria-hidden="true"></span>
             </button>
             <div v-if="openSelectKey === 'auditStatus'" class="select-popover select-popover--tall">
               <button
@@ -171,7 +171,7 @@
               type="button"
               @click.prevent="toggleSelect('realName')"
             >
-              {{ selectValues.realName }}<span>⌄</span>
+              {{ selectValues.realName }}<span class="chevron-down" aria-hidden="true"></span>
             </button>
             <div v-if="openSelectKey === 'realName'" class="select-popover">
               <button
@@ -204,7 +204,7 @@
               type="button"
               @click.prevent="toggleSelect('medicineName')"
             >
-              {{ selectValues.medicineName }}<span>⌄</span>
+              {{ selectValues.medicineName }}<span class="chevron-down" aria-hidden="true"></span>
             </button>
             <div v-if="openSelectKey === 'medicineName'" class="select-popover">
               <button
@@ -227,7 +227,7 @@
               type="button"
               @click.prevent="toggleSelect('consultNo')"
             >
-              {{ selectValues.consultNo }}<span>⌄</span>
+              {{ selectValues.consultNo }}<span class="chevron-down" aria-hidden="true"></span>
             </button>
             <div v-if="openSelectKey === 'consultNo'" class="select-popover">
               <button
@@ -250,7 +250,7 @@
 
         <div class="batch-actions">
           <div class="batch-actions__left">
-            <button class="ghost-action" type="button">导出<span>⌄</span></button>
+            <button class="ghost-action" type="button">导出<span class="chevron-down" aria-hidden="true"></span></button>
             <Button variant="primary" size="md">批量下载</Button>
             <Button variant="primary" size="md">批量打印</Button>
             <Button variant="primary" size="md">批量下载药品实名问诊</Button>
@@ -336,7 +336,7 @@
                 <td class="operations">
                   <button type="button">查看</button>
                   <button v-if="record.printable" type="button">打印</button>
-                  <button v-if="record.more" type="button">更多<span>⌄</span></button>
+                  <button v-if="record.more" type="button">更多<span class="chevron-down" aria-hidden="true"></span></button>
                 </td>
               </tr>
             </tbody>
@@ -344,7 +344,7 @@
         </div>
 
         <footer class="records-pagination">
-          <button class="page-size" type="button">20 条/页<span>⌄</span></button>
+          <button class="page-size" type="button">20 条/页<span class="chevron-down" aria-hidden="true"></span></button>
           <button class="page-nav" type="button">‹</button>
           <button class="page-number is-current" type="button">1</button>
           <button class="page-number" type="button">2</button>
@@ -815,17 +815,20 @@ const records = [
   box-shadow: 0 0 0 1px rgb(20 120 255 / 14%);
 }
 
-.select-control span,
-.ghost-action span {
+.select-control .chevron-down,
+.ghost-action .chevron-down {
   display: inline-block;
   margin-left: 10px;
-  color: #0f1720;
-  font-size: 18px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.5px solid #0f1720;
+  border-bottom: 1.5px solid #0f1720;
+  transform: rotate(45deg);
   transition: transform 0.16s ease;
 }
 
-.select-control.is-active span {
-  transform: rotate(180deg);
+.select-control.is-active .chevron-down {
+  transform: rotate(225deg);
 }
 
 .select-popover {
@@ -946,10 +949,14 @@ const records = [
   line-height: 20px;
 }
 
-.date-select span {
+.date-select .chevron-down {
+  display: inline-block;
   margin-left: 10px;
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 10.8px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.3px solid rgba(0, 0, 0, 0.45);
+  border-bottom: 1.3px solid rgba(0, 0, 0, 0.45);
+  transform: rotate(45deg);
 }
 
 .date-controller {
@@ -1311,8 +1318,14 @@ const records = [
   cursor: pointer;
 }
 
-.operations button span {
+.operations button .chevron-down {
+  display: inline-block;
   margin-left: 6px;
+  width: 6px;
+  height: 6px;
+  border-right: 1.3px solid currentColor;
+  border-bottom: 1.3px solid currentColor;
+  transform: rotate(45deg);
 }
 
 .records-pagination {
@@ -1343,8 +1356,14 @@ const records = [
   margin-right: 18px;
 }
 
-.page-size span {
+.page-size .chevron-down {
+  display: inline-block;
   margin-left: 16px;
+  width: 7px;
+  height: 7px;
+  border-right: 1.4px solid currentColor;
+  border-bottom: 1.4px solid currentColor;
+  transform: rotate(45deg);
 }
 
 .page-number,

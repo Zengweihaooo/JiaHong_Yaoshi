@@ -6,8 +6,8 @@
         <div class="topbar-actions">
           <Button variant="primary" size="md">在线客服</Button>
           <span>下载 APP 问诊</span>
-          <span>任务中心⌄</span>
-          <span>大王测试药店01⌄</span>
+          <span>任务中心<i class="chevron-down" aria-hidden="true"></i></span>
+          <span>大王测试药店01<i class="chevron-down" aria-hidden="true"></i></span>
         </div>
       </div>
     </header>
@@ -130,6 +130,16 @@ const router = useRouter();
   display: flex;
   align-items: center;
   gap: 18px;
+}
+
+.topbar-actions .chevron-down {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-left: 6px;
+  border-right: 1.4px solid currentColor;
+  border-bottom: 1.4px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
 }
 
 .new-product-nav {
