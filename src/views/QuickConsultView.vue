@@ -1,7 +1,7 @@
 <template>
   <div class="quick-consult-page">
     <header class="quick-consult-page__topbar">
-      <Button variant="neutral" size="md" icon @click="router.push('/')">
+      <Button class="quick-consult-page__back" variant="neutral" size="md" icon @click="router.push('/')">
         <img :src="assetUrl('assets/figma-consult/back.svg')" alt="" />
         <span>返回首页</span>
       </Button>
@@ -130,7 +130,7 @@
                     <span class="form-field__label"><em v-if="hasMedicines">*</em>复诊凭证</span>
                     <div class="upload-panel">
                       <p class="upload-panel__hint">
-                        支持上传线下就诊的历史处方、病历或相关证明，最多 5 张，单张不超过 5MB
+                        （支持上传线下就诊历史处方、门诊病历、出院记录等。最多上传5张；支持jpg、png格式，单张大小不超过5M）
                         <a href="#" @click.prevent>示例图片</a>
                       </p>
                       <button class="upload-panel__box" type="button" aria-label="上传复诊凭证">
@@ -300,8 +300,9 @@
             </section>
 
             <section class="form-section remark-section">
-              <h2 class="form-section__title">备注</h2>
-              <div class="right-field-control">
+              <div class="remark-field">
+                <span class="remark-field__label">备注</span>
+                <div class="right-field-control remark-field__control">
                 <input
                   v-model="form.remark"
                   class="jh-input-field jh-input-field--sm"
@@ -309,6 +310,7 @@
                   maxlength="30"
                   placeholder="请输入备注信息，最多30字"
                 />
+                </div>
               </div>
             </section>
           </div>
@@ -816,53 +818,71 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .quick-consult-page {
-  min-height: var(--jh-viewport-height, 100vh);
-  background: #f5f5f5;
+  min-width: 1440px;
+  min-height: 900px;
+  background: #f4f5f6;
 }
 
 .quick-consult-page__topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 40px;
+  box-sizing: border-box;
+  height: 56px;
   padding: 0 24px;
-  background: var(--jh-color-bg-surface);
+  background: #fff;
   border-bottom: 1px solid var(--jh-color-border);
 }
 
 .quick-consult-page__topbar :deep(.jh-btn) {
-  height: 26px;
-  padding: 3px 12px;
-  border-radius: var(--jh-radius-sm);
-  font-size: 12px;
+  height: 32px;
+  padding: 5px 16px;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.quick-consult-page__topbar :deep(.quick-consult-page__back) {
+  width: 112px;
+  border: 0;
+  color: rgba(0, 0, 0, 0.6);
+  background: #f3f4f6;
+}
+
+.quick-consult-page__topbar :deep(.jh-btn img) {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
 }
 
 .quick-consult-page__topbar-right {
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 32px;
 }
 
 .quick-consult-page__store {
-  color: var(--jh-color-text);
-  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .quick-consult-page__main {
   box-sizing: border-box;
-  width: 100%;
-  max-width: none;
+  width: 1440px;
   margin: 0 auto;
-  padding: 28px clamp(24px, 3vw, 56px);
+  padding: 24px;
 }
 
 .quick-consult-card {
-  width: 100%;
-  min-height: 720px;
-  border: 1px solid var(--jh-color-border);
-  border-radius: var(--jh-radius-lg);
-  background: var(--jh-color-bg-surface);
-  box-shadow: var(--jh-shadow-soft);
+  position: relative;
+  width: 1392px;
+  height: 796px;
+  border: 0;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 11.2px rgba(0, 0, 0, 0.15);
   overflow: hidden;
 }
 
@@ -870,80 +890,117 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 64px;
-  padding: 0 44px;
-  border-bottom: 1px solid var(--jh-color-border);
+  box-sizing: border-box;
+  height: 56px;
+  min-height: 56px;
+  padding: 0 48px;
+  border-bottom: 0;
+  background: #fcfcfc;
+  box-shadow: 0 6px 16px -8px rgba(16, 42, 67, 0.08), 0 1px 3px rgba(16, 42, 67, 0.05);
 }
 
 .quick-consult-card__title-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 24px;
 }
 
 .quick-consult-card__title-row h1 {
   margin: 0;
-  color: var(--jh-color-text);
+  color: rgba(0, 0, 0, 0.9);
   font-size: 20px;
-  font-weight: 600;
-  line-height: 28px;
+  font-weight: 400;
+  line-height: 24px;
 }
 
 .quick-consult-card__type {
   display: inline-flex;
   align-items: center;
-  height: 28px;
-  padding: 0 12px;
-  border-radius: var(--jh-radius-sm);
-  color: var(--jh-color-primary);
+  box-sizing: border-box;
+  height: 32px;
+  padding: 5px 12px;
+  border-radius: 4px;
+  color: #006ef9;
   font-size: 14px;
-  background: color-mix(in srgb, var(--jh-color-primary) 12%, var(--jh-color-bg-surface));
+  line-height: 22px;
+  background: #d1e5fe;
+}
+
+.quick-consult-card__header :deep(.jh-btn) {
+  height: 32px;
+  padding: 5px 16px;
+  border: 1px solid #d8dde1;
+  border-radius: 8px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  line-height: 22px;
+  background: #fff;
 }
 
 .quick-consult-card__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 696px 696px;
   gap: 0;
-  min-height: 580px;
+  height: 740px;
+  min-height: 740px;
 }
 
 .quick-consult-card__col {
-  padding: 38px 44px 20px;
+  box-sizing: border-box;
+  width: 696px;
+  padding: 32px 48px 20px;
 }
 
 .quick-consult-card__col + .quick-consult-card__col {
-  border-left: 1px solid var(--jh-color-border);
+  padding-right: 48px;
+  padding-left: 23px;
+  border-left: 1px solid #e5e8eb;
 }
 
 .form-section + .form-section {
-  margin-top: 28px;
+  margin-top: 32px;
 }
 
 .form-section__title {
   position: relative;
-  margin: 0 0 18px;
-  padding-left: 10px;
-  color: var(--jh-color-text);
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 26px;
+  margin: 0 0 16px;
+  padding-left: 8px;
+  color: rgba(0, 0, 0, 0.9);
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
 }
 
 .form-section__title::before {
   position: absolute;
-  top: 6px;
+  top: 4px;
   left: 0;
-  width: 3px;
+  width: 4px;
   height: 16px;
-  border-radius: 2px;
-  background: var(--jh-color-primary);
+  border-radius: 1px;
+  background: #006ef9;
   content: "";
 }
 
 .form-section__title em {
-  margin-right: 4px;
-  color: var(--jh-color-danger);
+  margin-right: 0;
+  color: #cb2c2c;
   font-style: normal;
+}
+
+.form-section__title:has(em) {
+  padding-left: 18px;
+}
+
+.form-section__title:has(em)::before {
+  left: 9px;
+}
+
+.form-section__title:has(em) em {
+  position: absolute;
+  top: 3px;
+  left: 0;
+  line-height: 18px;
 }
 
 .form-section__title-row {
@@ -951,7 +1008,7 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 16px;
 }
 
 .form-section__title-row .form-section__title {
@@ -959,37 +1016,85 @@ onBeforeUnmount(() => {
 }
 
 .form-section__note {
-  color: var(--jh-color-muted);
+  color: rgba(0, 0, 0, 0.4);
   font-size: 14px;
-  line-height: 26px;
+  line-height: 22px;
 }
 
 .form-grid {
   display: grid;
-  gap: 14px 18px;
+  gap: 12px 31px;
 }
 
 .form-grid--patient {
-  grid-template-columns: minmax(0, 1.05fr) minmax(260px, 0.95fr);
+  grid-template-columns: 348px 237px;
   align-items: start;
 }
 
 .patient-info-fields,
 .patient-proof-fields {
   display: grid;
-  gap: 14px;
+  gap: 12px;
+}
+
+.patient-info-fields {
+  margin-left: 7px;
 }
 
 .form-grid--history {
   grid-template-columns: 1fr;
+  gap: 12px;
 }
 
 .form-field {
   display: grid;
-  grid-template-columns: 118px minmax(0, 1fr);
+  grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
-  min-height: 40px;
+  gap: 16px;
+  min-height: 32px;
+}
+
+.patient-info-fields .form-field {
+  grid-template-columns: 84px 248px;
+}
+
+.patient-info-fields .form-field:nth-child(3) .jh-input-field {
+  width: 154px;
+}
+
+.patient-proof-fields .form-field {
+  grid-template-columns: 63px 154px;
+}
+
+.form-grid--history .form-field {
+  grid-template-columns: 70px minmax(0, 1fr);
+}
+
+.form-grid--history .form-field__label em {
+  display: none;
+}
+
+.form-grid--history :deep(.toggle-field) {
+  min-height: 32px;
+}
+
+.form-grid--history :deep(.toggle-field__buttons) {
+  gap: 8px;
+}
+
+.form-grid--history :deep(.toggle-field__buttons .jh-btn) {
+  min-width: 38px;
+  height: 32px;
+  padding: 5px 10px;
+  border-radius: 3px;
+  font-size: 16px;
+  line-height: 22px;
+}
+
+.form-grid--history :deep(.toggle-field__detail) {
+  width: 154px;
+  height: 32px;
+  font-size: 14px;
 }
 
 .form-field--upload {
@@ -998,7 +1103,7 @@ onBeforeUnmount(() => {
 
 .form-field--upload .form-field__label {
   padding-top: 0;
-  line-height: 32px;
+  line-height: 22px;
 }
 
 .form-field--full {
@@ -1006,16 +1111,16 @@ onBeforeUnmount(() => {
 }
 
 .form-field__label {
-  color: var(--jh-color-text);
-  font-size: 16px;
-  line-height: 24px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  line-height: 22px;
   text-align: right;
   white-space: nowrap;
 }
 
 .form-field__label em {
-  margin-right: 2px;
-  color: var(--jh-color-danger);
+  margin-right: 0;
+  color: #cb2c2c;
   font-style: normal;
 }
 
@@ -1038,8 +1143,8 @@ onBeforeUnmount(() => {
 .form-field__inline {
   display: flex;
   align-items: center;
-  gap: 24px;
-  min-height: 40px;
+  gap: 16px;
+  min-height: 32px;
 }
 
 .form-field__inline--gender {
@@ -1120,6 +1225,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 8px;
+  width: 248px;
   min-width: 0;
 }
 
@@ -1128,10 +1234,10 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   width: 100%;
-  height: 40px;
-  border: 1px solid var(--jh-color-border);
-  border-radius: var(--jh-radius-sm);
-  background: var(--jh-color-bg-surface);
+  height: 32px;
+  border: 1px solid #e5e8eb;
+  border-radius: 6px;
+  background: #fff;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
@@ -1148,13 +1254,13 @@ onBeforeUnmount(() => {
   width: 100%;
   min-width: 0;
   height: 100%;
-  padding: 0 38px 0 12px;
+  padding: 0 32px 0 10px;
   border: 0;
   border-radius: inherit;
   color: var(--jh-color-text);
   font: inherit;
-  font-size: 16px;
-  line-height: 40px;
+  font-size: 14px;
+  line-height: 22px;
   background: transparent;
   outline: none;
 }
@@ -1192,8 +1298,8 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   padding: 0;
   border: 1px solid var(--jh-color-border);
   border-radius: var(--jh-radius-sm);
@@ -1212,53 +1318,69 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   gap: 0;
+  width: 154px;
 }
 
 .form-field__suffix span {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 31px;
+  height: 32px;
   margin-left: -1px;
   border: 1px solid var(--jh-color-border);
-  border-radius: 0 var(--jh-radius-sm) var(--jh-radius-sm) 0;
-  color: var(--jh-color-muted);
+  border-radius: 0 3px 3px 0;
+  color: rgba(0, 0, 0, 0.4);
   font-size: 14px;
-  background: var(--jh-color-bg-page);
+  background: #f4f4f4;
 }
 
 .form-field__suffix .jh-input-field {
-  border-radius: var(--jh-radius-sm) 0 0 var(--jh-radius-sm);
+  width: 123px;
+  border-radius: 6px 0 0 6px;
 }
 
 .visit-method-field {
+  width: 154px;
   cursor: not-allowed;
 }
 
+.patient-proof-fields .jh-input-field {
+  width: 154px;
+}
+
+.upload-panel {
+  width: 158px;
+}
+
 .upload-panel__hint {
-  margin: 0 0 8px;
-  color: var(--jh-color-muted);
-  font-size: 16px;
-  line-height: 26px;
+  height: 111px;
+  margin: 0 0 9px;
+  width: 158px;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 12px;
+  line-height: 20px;
 }
 
 .upload-panel__hint a {
-  margin-left: 8px;
-  color: var(--jh-color-primary);
+  display: block;
+  margin-left: 0;
+  color: #006ef9;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .upload-panel__box {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 68px;
-  height: 68px;
-  border: 1px dashed var(--jh-color-border);
-  border-radius: var(--jh-radius-sm);
-  color: var(--jh-color-muted);
-  font-size: 28px;
-  background: var(--jh-color-bg-page);
+  width: 60px;
+  height: 60px;
+  border: 0.8px dashed #bec5cd;
+  border-radius: 1.5px;
+  color: rgba(0, 0, 0, 0.4);
+  font-size: 22px;
+  background: #fff;
   cursor: pointer;
 }
 
@@ -1269,9 +1391,11 @@ onBeforeUnmount(() => {
 }
 
 .pregnancy-options .jh-btn {
-  height: 34px;
-  padding: 5px 16px;
-  font-size: 16px;
+  height: 32px;
+  padding: 5px 12px;
+  border-radius: 3px;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .quick-consult-card .diagnosis-section,
@@ -1281,9 +1405,22 @@ onBeforeUnmount(() => {
   padding: 0;
 }
 
+.quick-consult-card .medicine-section {
+  margin-top: 34px;
+}
+
+.quick-consult-card .remark-section {
+  margin-top: 12px;
+}
+
+.medicine-section .form-section__title-row {
+  margin-bottom: 12px;
+}
+
 .right-field-control {
   box-sizing: border-box;
-  width: 100%;
+  width: 615px;
+  margin-left: 9px;
 }
 
 .right-field-control .jh-input-field {
@@ -1298,14 +1435,14 @@ onBeforeUnmount(() => {
 .diagnosis-picker__input {
   display: block;
   width: 100%;
-  height: 40px;
-  min-height: 40px;
-  padding: 8px 14px;
-  border: 1px solid var(--jh-color-border);
-  border-radius: var(--jh-radius-sm);
+  height: 32px;
+  min-height: 32px;
+  padding: 5px 10px;
+  border: 1px solid #e5e8eb;
+  border-radius: 6px;
   color: var(--jh-color-text);
   font-family: var(--jh-font-family);
-  font-size: 16px;
+  font-size: 14px;
   line-height: 22px;
   background: var(--jh-color-bg-surface);
   box-shadow: none;
@@ -1328,8 +1465,8 @@ onBeforeUnmount(() => {
 .selected-diagnosis-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
+  gap: 8px 12px;
+  margin-top: 12px;
 }
 
 .selected-diagnosis-option {
@@ -1399,8 +1536,8 @@ onBeforeUnmount(() => {
 .medicine-search__input {
   box-sizing: border-box;
   width: 100%;
-  height: 40px;
-  padding: 5px 12px;
+  height: 32px;
+  padding: 5px 10px;
   border: 1px solid #e5e8eb;
   border-radius: 6px;
   color: var(--jh-color-text);
@@ -1534,7 +1671,29 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 0;
+  width: 615px;
   margin-top: 8px;
+  margin-left: 9px;
+}
+
+.remark-field {
+  display: flex;
+  align-items: center;
+  width: 615px;
+  height: 32px;
+  margin-left: 9px;
+}
+
+.remark-field__label {
+  flex: 0 0 28px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.remark-field__control {
+  width: 571px;
+  margin-left: 16px;
 }
 
 .medicine-row {
@@ -1752,12 +1911,15 @@ onBeforeUnmount(() => {
 }
 
 .quick-consult-card__footer {
+  position: absolute;
+  right: 48px;
+  bottom: 32px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 24px;
-  min-height: 84px;
-  padding: 0 44px 28px;
+  gap: 16px;
+  min-height: 40px;
+  padding: 0;
 }
 
 .consent-check {
@@ -1765,8 +1927,10 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  color: var(--jh-color-text);
-  font-size: 16px;
+  width: 298px;
+  color: #3c4449;
+  font-size: 14px;
+  line-height: 22px;
   cursor: pointer;
 }
 
@@ -1784,9 +1948,9 @@ onBeforeUnmount(() => {
   position: relative;
   display: inline-flex;
   flex: 0 0 auto;
-  width: 24px;
-  height: 24px;
-  border: 1.925px solid #e5e8eb;
+  width: 16px;
+  height: 16px;
+  border: 1px solid #d0d5d9;
   border-radius: 4px;
   background: #fff;
   transition: border-color 0.15s ease, background 0.15s ease;
@@ -1805,17 +1969,17 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 13px;
-  height: 8px;
-  border-left: 3px solid #fff;
-  border-bottom: 3px solid #fff;
+  width: 9px;
+  height: 5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
   border-radius: 1px;
   content: "";
   transform: translate(-50%, -62%) rotate(-45deg);
 }
 
 .consent-check__text {
-  color: var(--jh-color-muted);
+  color: #3c4449;
 }
 
 .consent-check a {
@@ -1824,11 +1988,14 @@ onBeforeUnmount(() => {
 }
 
 .jh-input-field {
-  width: 100%;
+  width: 248px;
   min-width: 0;
-  height: 40px;
-  padding: 8px 14px;
-  font-size: 16px;
+  height: 32px;
+  padding: 5px 10px;
+  border-color: #e5e8eb;
+  border-radius: 6px;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .jh-input-field:disabled {
@@ -1842,9 +2009,12 @@ onBeforeUnmount(() => {
 }
 
 .quick-consult-card__footer :deep(.jh-btn) {
-  width: 122px;
-  height: 44px;
-  font-size: 18px;
+  width: 112px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 26px;
 }
 
 .consent-confirm-overlay {
@@ -2092,37 +2262,4 @@ onBeforeUnmount(() => {
   font-weight: 700;
 }
 
-@media (max-width: 960px) {
-  .quick-consult-card__body {
-    grid-template-columns: 1fr;
-  }
-
-  .quick-consult-card__col + .quick-consult-card__col {
-    border-top: 1px solid var(--jh-color-border);
-    border-left: 0;
-  }
-
-  .form-grid--patient {
-    grid-template-columns: 1fr;
-  }
-
-  .patient-info-fields,
-  .patient-proof-fields {
-    gap: 12px;
-  }
-
-  .form-field {
-    grid-template-columns: 128px minmax(0, 1fr);
-  }
-
-  .medicine-row {
-    grid-template-columns: 1fr;
-  }
-
-  .quick-consult-card__footer {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 16px;
-  }
-}
 </style>
