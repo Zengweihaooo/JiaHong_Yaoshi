@@ -195,7 +195,7 @@
                   @click="showDiagnosisDropdown = true"
                 />
                 <TransitionGroup
-                  v-if="form.diagnoses.length && !hasPersistentDiagnosisOptions"
+                  v-if="form.diagnoses.length && !showDiagnosisDropdown"
                   name="diagnosis-selected"
                   tag="div"
                   class="diagnosis-selected-tags"
@@ -219,7 +219,7 @@
                       'diagnosis-dropdown',
                       {
                         'diagnosis-dropdown--common': showCommonDiagnosisDropdown,
-                        'diagnosis-dropdown--persistent': hasPersistentDiagnosisOptions
+                        'diagnosis-dropdown--persistent': hasDiagnosisSuggestionContext
                       }
                     ]"
                   >
@@ -576,7 +576,6 @@ const activeDiagnosisRules = computed(() => {
 const hasDiagnosisSuggestionContext = computed(() => {
   return activeDiagnosisRules.value.length > 0 || form.medicines.length > 0 || Boolean(form.medicineKeyword.trim());
 });
-const hasPersistentDiagnosisOptions = computed(() => form.medicines.length > 0);
 // 根据已录入药品生成 Figma 中“可选疾病”的候选、选中和禁用状态。
 const diagnosisSuggestionOptions = computed(() => {
   const labels = [];
@@ -612,9 +611,7 @@ const diagnosisDropdownTitle = computed(() => (showCommonDiagnosisDropdown.value
 const diagnosisDropdownOptions = computed(() =>
   showCommonDiagnosisDropdown.value ? commonDiagnosisOptions.value : diagnosisSuggestionOptions.value
 );
-const showDiagnosisOptions = computed(
-  () => diagnosisDropdownOptions.value.length > 0 && (showDiagnosisDropdown.value || hasPersistentDiagnosisOptions.value)
-);
+const showDiagnosisOptions = computed(() => diagnosisDropdownOptions.value.length > 0 && showDiagnosisDropdown.value);
 const diagnosisConfirmGroups = computed(() => {
   return form.medicines
     .map((medicine) => {
@@ -739,6 +736,7 @@ function addMedicine(option) {
   form.medicineKeyword = "";
   showMedicineDropdown.value = false;
   medicineFocused.value = false;
+  showDiagnosisDropdown.value = true;
 }
 
 function registerNewMedicine() {
@@ -1580,7 +1578,17 @@ onBeforeUnmount(() => {
 }
 
 .diagnosis-dropdown--persistent {
-  display: block;
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 0;
+  max-height: 220px;
+  padding: 12px;
+  border: 1px solid #e5e8eb;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(16, 42, 67, 0.14), 0 2px 6px rgba(16, 42, 67, 0.08);
+  overflow-y: auto;
 }
 
 .diagnosis-dropdown--common {
@@ -2418,12 +2426,38 @@ onBeforeUnmount(() => {
 }
 
 .submit-confirm-group :deep(.jh-disease-option) {
+  height: 28px;
   min-height: 28px;
-  padding: 4px 12px;
+  padding: 3px 11px;
+  border: 1px solid #d8dde1;
   border-radius: 50px;
+  color: rgba(0, 0, 0, 0.6);
   font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
   font-size: 14px;
+  font-weight: 400;
   line-height: 22px;
+  background: #fcfcfc;
+  box-shadow: none;
+}
+
+.submit-confirm-group :deep(.jh-disease-option:hover) {
+  border-color: #006ef9;
+  color: #006ef9;
+  background: #fff;
+}
+
+.submit-confirm-group :deep(.jh-disease-option--selected),
+.submit-confirm-group :deep(.jh-disease-option--selected:hover) {
+  border-color: #006ef9;
+  color: #fff;
+  background: #006ef9;
+}
+
+.submit-confirm-group :deep(.jh-disease-option:disabled) {
+  border-color: #d8dde1;
+  color: rgba(0, 0, 0, 0.26);
+  background: #eceef0;
+  cursor: not-allowed;
 }
 
 .submit-confirm-empty {
