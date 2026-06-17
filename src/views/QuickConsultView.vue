@@ -194,32 +194,52 @@
                   @focus="showDiagnosisDropdown = true"
                   @click="showDiagnosisDropdown = true"
                 />
-                <div
-                  v-if="showDiagnosisOptions"
-                  :class="['diagnosis-dropdown', { 'diagnosis-dropdown--common': showCommonDiagnosisDropdown }]"
+                <TransitionGroup
+                  v-if="form.diagnoses.length"
+                  name="diagnosis-selected"
+                  tag="div"
+                  class="diagnosis-selected-tags"
                 >
-                  <p class="diagnosis-dropdown__label">{{ diagnosisDropdownTitle }}</p>
-                  <div class="diagnosis-tags">
-                    <button
-                      v-for="option in diagnosisDropdownOptions"
-                      :key="option.label"
-                      :class="[
-                        'diagnosis-chip',
-                        {
-                          'is-selected': option.selected,
-                          'is-disabled': option.disabled
-                        }
-                      ]"
-                      type="button"
-                      :disabled="option.disabled"
-                      :aria-pressed="option.selected"
-                      @mousedown.prevent
-                      @click="toggleDiagnosis(option.label)"
-                    >
-                      {{ option.label }}
-                    </button>
+                  <button
+                    v-for="diagnosis in form.diagnoses"
+                    :key="diagnosis"
+                    class="diagnosis-chip diagnosis-chip--selected-result"
+                    type="button"
+                    :aria-label="`移除${diagnosis}`"
+                    @mousedown.prevent
+                    @click="removeDiagnosis(diagnosis)"
+                  >
+                    {{ diagnosis }}
+                  </button>
+                </TransitionGroup>
+                <Transition name="diagnosis-dropdown-fade">
+                  <div
+                    v-if="showDiagnosisOptions"
+                    :class="['diagnosis-dropdown', { 'diagnosis-dropdown--common': showCommonDiagnosisDropdown }]"
+                  >
+                    <p class="diagnosis-dropdown__label">{{ diagnosisDropdownTitle }}</p>
+                    <div class="diagnosis-tags">
+                      <button
+                        v-for="option in diagnosisDropdownOptions"
+                        :key="option.label"
+                        :class="[
+                          'diagnosis-chip',
+                          {
+                            'is-selected': option.selected,
+                            'is-disabled': option.disabled
+                          }
+                        ]"
+                        type="button"
+                        :disabled="option.disabled"
+                        :aria-pressed="option.selected"
+                        @mousedown.prevent
+                        @click="toggleDiagnosis(option.label)"
+                      >
+                        {{ option.label }}
+                      </button>
+                    </div>
                   </div>
-                </div>
+                </Transition>
               </div>
             </section>
 
@@ -615,8 +635,6 @@ function toggleDiagnosis(tag) {
   } else {
     addDiagnosis(tag);
   }
-  syncDiagnosisKeyword();
-  showDiagnosisDropdown.value = false;
 }
 
 function addDiagnosis(tag) {
@@ -624,15 +642,12 @@ function addDiagnosis(tag) {
   if (!form.diagnoses.includes(tag)) {
     form.diagnoses.push(tag);
   }
+  form.diagnosisKeyword = "";
 }
 
 function removeDiagnosis(tag) {
   if (isDiagnosisDisabled(tag)) return;
   form.diagnoses = form.diagnoses.filter((item) => item !== tag);
-}
-
-function syncDiagnosisKeyword() {
-  form.diagnosisKeyword = form.diagnoses.join("、");
 }
 
 function isDiagnosisDisabled(tag) {
@@ -1502,10 +1517,42 @@ onBeforeUnmount(() => {
   outline: 0;
 }
 
+.diagnosis-selected-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.diagnosis-selected-move,
+.diagnosis-selected-enter-active,
+.diagnosis-selected-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.diagnosis-selected-enter-from,
+.diagnosis-selected-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
+}
+
+.diagnosis-dropdown-fade-enter-active,
+.diagnosis-dropdown-fade-leave-active {
+  transform-origin: top center;
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+
+.diagnosis-dropdown-fade-enter-from,
+.diagnosis-dropdown-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scaleY(0.98);
+}
+
 .diagnosis-dropdown {
   box-sizing: border-box;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 12px;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -1595,6 +1642,19 @@ onBeforeUnmount(() => {
   border-color: #006ef9;
   color: #fff;
   background: #006ef9;
+}
+
+.diagnosis-chip--selected-result {
+  height: 28px;
+  padding: 3px 11px;
+  border-color: #d8dde1;
+  color: rgba(0, 0, 0, 0.6);
+  background: #fcfcfc;
+}
+
+.diagnosis-chip--selected-result:hover {
+  border-color: #b9c0c7;
+  background: #f5f7fa;
 }
 
 .diagnosis-chip.is-disabled,
