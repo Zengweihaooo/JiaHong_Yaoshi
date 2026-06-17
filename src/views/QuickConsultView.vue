@@ -1020,20 +1020,15 @@ onBeforeUnmount(() => {
 }
 
 .form-field--gender {
-  grid-template-columns: 35px 92px;
   align-items: center;
-  gap: 16px;
-  width: 143px;
   min-height: 22px;
 }
 
 .form-field__label--gender {
-  width: 35px;
   color: var(--jh-color-danger);
   font-size: 14px;
   font-weight: 400;
   line-height: 22px;
-  text-align: left;
 }
 
 .form-field__label--gender em {
@@ -2118,13 +2113,6 @@ onBeforeUnmount(() => {
 
   .form-field {
     grid-template-columns: 128px minmax(0, 1fr);
-  }
-
-  .form-field--gender {
-    grid-template-columns: 35px 92px;
-    gap: 16px;
-    width: 143px;
-    min-height: 22px;
   }
 
   .medicine-row {
