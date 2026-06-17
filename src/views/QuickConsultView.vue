@@ -194,11 +194,14 @@
                   @focus="showDiagnosisDropdown = true"
                   @click="showDiagnosisDropdown = true"
                 />
-                <div v-if="showDiagnosisOptions" class="diagnosis-dropdown">
-                  <p class="diagnosis-dropdown__label">可选疾病</p>
+                <div
+                  v-if="showDiagnosisOptions"
+                  :class="['diagnosis-dropdown', { 'diagnosis-dropdown--common': showCommonDiagnosisDropdown }]"
+                >
+                  <p class="diagnosis-dropdown__label">{{ diagnosisDropdownTitle }}</p>
                   <div class="diagnosis-tags">
                     <button
-                      v-for="option in diagnosisSuggestionOptions"
+                      v-for="option in diagnosisDropdownOptions"
                       :key="option.label"
                       :class="[
                         'diagnosis-chip',
@@ -556,7 +559,19 @@ const diagnosisSuggestionOptions = computed(() => {
     disabled: activeDiagnosisRules.value.some((rule) => rule.disabledOptions.includes(label)) || isDiagnosisDisabled(label)
   }));
 });
-const showDiagnosisOptions = computed(() => diagnosisSuggestionOptions.value.length > 0);
+const commonDiagnosisOptions = computed(() =>
+  commonDiagnoses.map((label) => ({
+    label,
+    selected: form.diagnoses.includes(label),
+    disabled: isDiagnosisDisabled(label)
+  }))
+);
+const showCommonDiagnosisDropdown = computed(() => diagnosisSuggestionOptions.value.length === 0);
+const diagnosisDropdownTitle = computed(() => (showCommonDiagnosisDropdown.value ? "常见疾病" : "可选疾病"));
+const diagnosisDropdownOptions = computed(() =>
+  showCommonDiagnosisDropdown.value ? commonDiagnosisOptions.value : diagnosisSuggestionOptions.value
+);
+const showDiagnosisOptions = computed(() => showDiagnosisDropdown.value && diagnosisDropdownOptions.value.length > 0);
 const diagnosisConfirmGroups = computed(() => {
   return form.medicines
     .map((medicine) => {
@@ -1489,6 +1504,29 @@ onBeforeUnmount(() => {
   overflow: visible;
 }
 
+.diagnosis-dropdown--common {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 8px);
+  left: 0;
+  max-height: 270px;
+  padding: 14px 12px 16px;
+  border: 1px solid #e5e8eb;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 12px 28px rgba(16, 42, 67, 0.14), 0 2px 6px rgba(16, 42, 67, 0.08);
+  overflow-y: auto;
+}
+
+.diagnosis-dropdown--common::-webkit-scrollbar {
+  width: 8px;
+}
+
+.diagnosis-dropdown--common::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: #d8dde1;
+}
+
 .diagnosis-dropdown__label {
   margin: 0 0 8px;
   color: rgba(0, 0, 0, 0.4);
@@ -1498,11 +1536,29 @@ onBeforeUnmount(() => {
   line-height: 22px;
 }
 
+.diagnosis-dropdown--common .diagnosis-dropdown__label {
+  margin-bottom: 14px;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 16px;
+  line-height: 24px;
+}
+
 .diagnosis-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
+}
+
+.diagnosis-dropdown--common .diagnosis-tags {
+  gap: 12px 10px;
+}
+
+.diagnosis-dropdown--common .diagnosis-chip {
+  height: 32px;
+  padding: 5px 18px;
+  font-size: 14px;
+  line-height: 22px;
 }
 
 .diagnosis-chip {
