@@ -30,7 +30,11 @@
         <div class="tc-shell__body">
           <section
             class="tc-chat"
-            :class="{ 'tc-chat--decision': showDoctorFollowUp && !prescriptionReady && !consultCancelled }"
+            :class="{
+              'tc-chat--decision': showDoctorFollowUp && !prescriptionReady && !consultCancelled,
+              'tc-chat--ready': prescriptionReady,
+              'tc-chat--cancelled': consultCancelled
+            }"
             aria-label="问诊对话"
           >
             <div ref="chatScrollRef" class="tc-chat-scroll">
@@ -120,7 +124,7 @@
                   <em>问诊完成，点击打印</em>
                 </span>
                 <span class="tc-print-card__icon" aria-hidden="true">
-                  <span class="tc-print-card__paper"></span>
+                  <img :src="printPrescriptionIcon" alt="" />
                 </span>
               </button>
             </div>
@@ -175,7 +179,9 @@
       <section class="tc-cancel-dialog" role="dialog" aria-modal="true" aria-labelledby="tc-cancel-title">
         <header class="tc-cancel-dialog__header">
           <h2 id="tc-cancel-title">取消问诊</h2>
-          <button class="tc-cancel-dialog__close" type="button" aria-label="关闭" @click="showCancelDialog = false">×</button>
+          <button class="tc-cancel-dialog__close" type="button" aria-label="关闭" @click="showCancelDialog = false">
+            <img :src="cancelDialogCloseIcon" alt="" />
+          </button>
         </header>
         <div class="tc-cancel-dialog__body">是否确定取消问诊?</div>
         <footer class="tc-cancel-dialog__footer">
@@ -191,9 +197,11 @@ import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref
 import { useRoute, useRouter } from "vue-router";
 import { ArrowLeft } from "@element-plus/icons-vue";
 import { Button } from "@jiahong/ui";
+import cancelDialogCloseIcon from "@/assets/figma-text-consult/cancel-dialog-close.svg";
 import cancelConsultIcon from "@/assets/figma-text-consult/cancel-consult.svg";
 import doctorAvatarAsset from "@/assets/figma-text-consult/doctor-avatar.png";
 import prescriptionIcon from "@/assets/figma-text-consult/prescription.svg";
+import printPrescriptionIcon from "@/assets/figma-text-consult/print-prescription-messages.svg";
 import visitCardBg from "@/assets/figma-text-consult/visit-card-bg.png";
 import tipsCheckIcon from "@/assets/figma-text-consult/tips-check-circle-fill.svg";
 import tipsWarnIcon from "@/assets/figma-text-consult/tips-exclamation-circle-fill.svg";
@@ -490,6 +498,14 @@ onBeforeUnmount(() => {
   grid-template-rows: minmax(0, 1fr);
 }
 
+.tc-chat--ready {
+  grid-template-rows: minmax(0, 1fr) 176px;
+}
+
+.tc-chat--cancelled {
+  grid-template-rows: minmax(0, 1fr) 176px;
+}
+
 .tc-chat-scroll {
   position: relative;
   min-height: 0;
@@ -511,6 +527,10 @@ onBeforeUnmount(() => {
   text-align: center;
 }
 
+.tc-chat--ready .tc-chat-time {
+  top: -114px;
+}
+
 .tc-doctor-message {
   display: flex;
   align-items: flex-start;
@@ -524,6 +544,10 @@ onBeforeUnmount(() => {
   left: 39px;
 }
 
+.tc-chat--ready .tc-chat-scroll > .tc-doctor-message:not(.tc-doctor-message--follow):not(.tc-doctor-message--final) {
+  top: -86px;
+}
+
 .tc-doctor-message--follow {
   position: absolute;
   top: 432px;
@@ -531,11 +555,19 @@ onBeforeUnmount(() => {
   margin-top: 0;
 }
 
+.tc-chat--ready .tc-doctor-message--follow {
+  top: 143px;
+}
+
 .tc-doctor-message--final {
   position: absolute;
   top: 650px;
   left: 39px;
   margin-top: 0;
+}
+
+.tc-chat--ready .tc-doctor-message--final {
+  top: 349px;
 }
 
 .tc-doctor-avatar {
@@ -605,6 +637,11 @@ onBeforeUnmount(() => {
 .tc-chat-scroll > .tc-visit-card {
   position: absolute;
   top: 190px;
+  left: 462px;
+}
+
+.tc-chat--ready .tc-chat-scroll > .tc-visit-card {
+  top: -99px;
   left: 462px;
 }
 
@@ -768,6 +805,16 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 
+.tc-chat--ready .tc-patient-message {
+  top: 283px;
+  right: 39px;
+}
+
+.tc-chat--cancelled .tc-patient-message {
+  top: 498px;
+  right: 39px;
+}
+
 .tc-patient-bubble {
   max-width: 420px;
   padding: 14px 18px;
@@ -813,6 +860,11 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
+.tc-chat--ready .tc-print-card {
+  top: 439px;
+  left: 91px;
+}
+
 .tc-print-card__text {
   display: flex;
   flex-direction: column;
@@ -843,41 +895,12 @@ onBeforeUnmount(() => {
   justify-content: center;
   width: 85px;
   height: 86px;
-  border-radius: 18px;
-  background: linear-gradient(180deg, #c9e8ff 0%, #64a9ff 68%, #5b9cf5 100%);
-  box-shadow: inset 0 14px 18px rgba(255, 255, 255, 0.38), 0 12px 18px rgba(58, 137, 242, 0.12);
 }
 
-.tc-print-card__icon::before,
-.tc-print-card__icon::after {
-  position: absolute;
-  left: 28px;
-  width: 34px;
-  height: 5px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.72);
-  content: "";
-}
-
-.tc-print-card__icon::before {
-  top: 24px;
-}
-
-.tc-print-card__icon::after {
-  top: 39px;
-}
-
-.tc-print-card__paper {
-  position: absolute;
-  left: 14px;
-  bottom: 18px;
-  width: 56px;
-  height: 44px;
-  border: 8px solid rgba(39, 128, 234, 0.72);
-  border-top: 0;
-  border-radius: 0 0 9px 9px;
-  transform: rotate(42deg) skew(-6deg, -6deg);
-  transform-origin: center;
+.tc-print-card__icon img {
+  display: block;
+  width: 85px;
+  height: 86px;
 }
 
 .tc-reply {
@@ -890,6 +913,42 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   background: #fff;
   box-shadow: 0 -12px 18px rgba(250, 250, 250, 0.95);
+}
+
+.tc-chat--ready .tc-reply {
+  height: 120px;
+  margin: 0 39px 24px;
+}
+
+.tc-chat--ready .tc-reply textarea {
+  height: 50px;
+  padding: 11px 14px 0;
+}
+
+.tc-chat--ready .tc-reply__actions {
+  gap: 12px;
+  padding: 15px 14px;
+}
+
+.tc-chat--ready .tc-image-action {
+  width: 28px;
+  height: 28px;
+  border-width: 1.077px;
+}
+
+.tc-chat--ready .tc-quick-reply {
+  width: 72px;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.tc-chat--ready .tc-send-btn {
+  min-width: 80px;
+  height: 40px;
+  border-radius: 8px;
 }
 
 .tc-reply textarea {
@@ -1252,7 +1311,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
   border-radius: 8px;
   background: #fff;
-  box-shadow: 0 18px 44px rgba(17, 24, 39, 0.22);
+  box-shadow: 0 84px 64px -20px rgba(16, 42, 67, 0.18), 0 8px 16px -4px rgba(16, 42, 67, 0.1);
 }
 
 .tc-cancel-dialog__header {
@@ -1260,16 +1319,19 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   height: 48px;
-  padding: 0 16px 0 24px;
-  border-bottom: 1px solid rgba(229, 231, 235, 0.5);
+  box-sizing: border-box;
+  padding: 12px 16px 12.67px;
+  border-bottom: 0.667px solid rgba(229, 231, 235, 0.5);
+  border-radius: 8px 8px 0 0;
   background: #f2f3f4;
+  box-shadow: 0 1px 2px rgba(16, 42, 67, 0.04);
 }
 
 .tc-cancel-dialog__header h2 {
   margin: 0;
   color: #1e2939;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
   line-height: 24px;
 }
 
@@ -1277,34 +1339,42 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   border: 0;
-  border-radius: 6px;
-  color: rgba(0, 0, 0, 0.45);
-  font: inherit;
-  font-size: 28px;
-  line-height: 1;
+  padding: 0;
   background: transparent;
   cursor: pointer;
 }
 
+.tc-cancel-dialog__close img {
+  display: block;
+  width: 20px;
+  height: 20px;
+}
+
 .tc-cancel-dialog__close:hover {
-  color: rgba(0, 0, 0, 0.7);
+  opacity: 0.82;
 }
 
 .tc-cancel-dialog__body {
+  box-sizing: border-box;
   min-height: 72px;
   padding: 24px;
   color: #1e2939;
   font-size: 16px;
+  font-weight: 400;
   line-height: 24px;
 }
 
 .tc-cancel-dialog__footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  padding: 16px 24px 24px;
+  box-sizing: border-box;
+  height: 72px;
+  padding: 16px 24px 16px 10px;
+  overflow: hidden;
 }
 
 .tc-cancel-dialog__confirm {
@@ -1316,6 +1386,7 @@ onBeforeUnmount(() => {
   font: inherit;
   font-size: 14px;
   font-weight: 700;
+  line-height: 22px;
   background: linear-gradient(270deg, #3b92ff 0%, #006ef9 100%);
   cursor: pointer;
 }
