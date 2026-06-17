@@ -2,7 +2,9 @@
   <div class="quick-consult-page">
     <header class="quick-consult-page__topbar">
       <Button class="quick-consult-page__back" variant="neutral" size="md" icon @click="router.push('/')">
-        <img :src="assetUrl('assets/figma-consult/back.svg')" alt="" />
+        <el-icon class="quick-consult-page__back-icon" aria-hidden="true">
+          <ArrowLeft />
+        </el-icon>
         <span>返回首页</span>
       </Button>
       <div class="quick-consult-page__topbar-right">
@@ -192,28 +194,27 @@
                   @focus="showDiagnosisDropdown = true"
                   @click="showDiagnosisDropdown = true"
                 />
-                <div v-if="displayDiagnosisTags.length" class="selected-diagnosis-tags">
-                  <DiseaseOption
-                    v-for="tag in displayDiagnosisTags"
-                    :key="tag.label"
-                    :label="tag.label"
-                    :disabled="tag.disabled"
-                    class="selected-diagnosis-option"
-                    @click="removeDiagnosis(tag.label)"
-                  />
-                </div>
-                <div v-if="showDiagnosisDropdown" class="diagnosis-dropdown">
-                  <h3>常见疾病</h3>
+                <div v-if="showDiagnosisOptions" class="diagnosis-dropdown">
+                  <p class="diagnosis-dropdown__label">可选疾病</p>
                   <div class="diagnosis-tags">
-                    <DiseaseOption
-                      v-for="tag in commonDiagnoses"
-                      :key="tag"
-                      :label="tag"
-                      :selected="form.diagnoses.includes(tag)"
-                      :disabled="isDiagnosisDisabled(tag)"
+                    <button
+                      v-for="option in diagnosisSuggestionOptions"
+                      :key="option.label"
+                      :class="[
+                        'diagnosis-chip',
+                        {
+                          'is-selected': option.selected,
+                          'is-disabled': option.disabled
+                        }
+                      ]"
+                      type="button"
+                      :disabled="option.disabled"
+                      :aria-pressed="option.selected"
                       @mousedown.prevent
-                      @click="toggleDiagnosis(tag)"
-                    />
+                      @click="toggleDiagnosis(option.label)"
+                    >
+                      {{ option.label }}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -394,7 +395,8 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Button, DiseaseOption, assetUrl } from "@jiahong/ui";
+import { ArrowLeft } from "@element-plus/icons-vue";
+import { Button, DiseaseOption } from "@jiahong/ui";
 import ToggleField from "@/components/quick-consult/ToggleField.vue";
 import { useConsultStore } from "@/stores/consult";
 
@@ -445,7 +447,7 @@ const commonDiagnoses = [
   "急性咽喉炎",
   "泌尿道感染",
   "男性勃起障碍",
-  "急性鼻咽炎【感冒】",
+  "急性鼻咽炎 [感冒]",
   "过敏性鼻炎[变应性鼻炎]",
   "偏头痛",
   "支气管哮喘",
@@ -474,7 +476,7 @@ const medicineDiagnosisRules = [
     id: "cold",
     match: (name) => name.includes("感冒"),
     medicineName: "感冒灵胶囊",
-    options: ["急性鼻咽炎【感冒】"],
+    options: ["急性鼻咽炎 [感冒]"],
     disabledOptions: []
   }
 ];
@@ -529,20 +531,32 @@ const requiresIdentityInfo = computed(() => {
     return psychMedicineNames.some((medicineName) => name.includes(medicineName) || medicineName.includes(name));
   });
 });
-const confirmedDiagnoses = computed(() => (form.diagnoses.length ? form.diagnoses : ["认知障碍", "卒中后抑郁", "抑郁发作"]));
-const confirmedMedicines = computed(() => form.medicines.map((item) => item.name));
-const displayDiagnosisTags = computed(() => {
-  const tags = form.diagnoses.map((label) => ({
-    label,
-    disabled: isDiagnosisDisabled(label)
-  }));
-
-  if (requiresIdentityInfo.value && !form.diagnoses.includes("抑郁发作")) {
-    tags.push({ label: "抑郁发作", disabled: true });
+const activeDiagnosisRules = computed(() => {
+  const names = [...form.medicines.map((item) => item.name), form.medicineKeyword.trim()].filter(Boolean);
+  return medicineDiagnosisRules.filter((rule) => names.some((name) => rule.match(name)));
+});
+// 根据已录入药品生成 Figma 中“可选疾病”的候选、选中和禁用状态。
+const diagnosisSuggestionOptions = computed(() => {
+  const labels = [];
+  activeDiagnosisRules.value.forEach((rule) => {
+    rule.options.forEach((label) => {
+      if (!labels.includes(label)) labels.push(label);
+    });
+  });
+  form.diagnoses.forEach((label) => {
+    if (!labels.includes(label)) labels.push(label);
+  });
+  if (!labels.length && form.medicines.length) {
+    commonDiagnoses.slice(0, 4).forEach((label) => labels.push(label));
   }
 
-  return tags;
+  return labels.map((label) => ({
+    label,
+    selected: form.diagnoses.includes(label),
+    disabled: activeDiagnosisRules.value.some((rule) => rule.disabledOptions.includes(label)) || isDiagnosisDisabled(label)
+  }));
 });
+const showDiagnosisOptions = computed(() => diagnosisSuggestionOptions.value.length > 0);
 const diagnosisConfirmGroups = computed(() => {
   return form.medicines
     .map((medicine) => {
@@ -849,11 +863,12 @@ onBeforeUnmount(() => {
   background: #f3f4f6;
 }
 
-.quick-consult-page__topbar :deep(.jh-btn img) {
-  flex: 0 0 auto;
+.quick-consult-page__back-icon {
+  flex: 0 0 16px;
   width: 16px;
   height: 16px;
-  object-fit: contain;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .quick-consult-page__topbar-right {
@@ -1462,67 +1477,66 @@ onBeforeUnmount(() => {
   outline: 0;
 }
 
-.selected-diagnosis-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 12px;
-  margin-top: 12px;
-}
-
-.selected-diagnosis-option {
-  cursor: default;
-}
-
-.selected-diagnosis-option:hover {
-  border-color: #d8dde1;
-  color: var(--jh-color-text);
-  background: var(--jh-color-bg-surface);
-}
-
 .diagnosis-dropdown {
-  position: absolute;
-  z-index: 20;
   box-sizing: border-box;
-  top: calc(100% + 10px);
-  left: 0;
-  right: 0;
   width: 100%;
-  max-height: 270px;
-  padding: 10px 14px 14px;
-  border: 1px solid var(--jh-color-border);
-  border-radius: var(--jh-radius-sm);
-  background: var(--jh-color-bg-surface);
-  box-shadow: var(--jh-shadow-soft);
-  overflow-y: auto;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
 }
 
-.diagnosis-dropdown::-webkit-scrollbar {
-  width: 8px;
-}
-
-.diagnosis-dropdown::-webkit-scrollbar-thumb {
-  border-radius: 999px;
-  background: #d8dde1;
-}
-
-.diagnosis-dropdown h3 {
-  margin: 0 0 18px;
-  padding-left: 0;
-  color: var(--jh-color-muted);
-  font-size: 16px;
-  font-weight: 600;
-  line-height: 24px;
-}
-
-.diagnosis-dropdown h3::before {
-  display: none;
-  content: none;
+.diagnosis-dropdown__label {
+  margin: 0 0 8px;
+  color: rgba(0, 0, 0, 0.4);
+  font-family: var(--jh-font-family);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
 }
 
 .diagnosis-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 7px 10px;
+  gap: 8px;
+  align-items: center;
+}
+
+.diagnosis-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  height: 28px;
+  min-width: 0;
+  padding: 5px 11px;
+  border: 1px solid #d8dde1;
+  border-radius: 50px;
+  color: rgba(0, 0, 0, 0.6);
+  font-family: var(--jh-font-family);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
+  background: #fcfcfc;
+  cursor: pointer;
+  appearance: none;
+}
+
+.diagnosis-chip.is-selected {
+  border-color: #006ef9;
+  color: #fff;
+  background: #006ef9;
+}
+
+.diagnosis-chip.is-disabled,
+.diagnosis-chip:disabled {
+  border-color: #d8dde1;
+  color: rgba(0, 0, 0, 0.26);
+  background: #eceef0;
+  cursor: not-allowed;
 }
 
 .medicine-section.is-disabled .form-section__note {
