@@ -1,9 +1,11 @@
 <template>
   <div class="text-consult-page">
     <header class="page-topbar">
-      <Button variant="neutral" size="md" icon @click="router.push('/')">
-        <img :src="assetUrl('assets/figma-consult/back.svg')" alt="" />
-        返回首页
+      <Button class="page-topbar__back" variant="neutral" size="md" icon @click="router.push('/')">
+        <el-icon class="page-topbar__back-icon" aria-hidden="true">
+          <ArrowLeft />
+        </el-icon>
+        <span>返回首页</span>
       </Button>
       <div class="page-topbar__right">
         <Button variant="primary" size="md">在线客服</Button>
@@ -19,8 +21,8 @@
             <h1>武汉市好药师大药房南岸店</h1>
             <span>快速问诊</span>
           </div>
-          <Button variant="outline-secondary" size="sm" @click="router.push('/')">
-            <span class="power-icon" aria-hidden="true">⏻</span>
+          <Button class="tc-cancel-consult-btn" variant="outline-secondary" size="sm" @click="router.push('/')">
+            <img :src="cancelConsultIcon" alt="" />
             取消问诊
           </Button>
         </header>
@@ -47,10 +49,10 @@
                 </div>
               </article>
 
-              <article class="tc-visit-card" aria-label="就诊信息">
+              <article class="tc-visit-card" :style="{ '--visit-card-bg': `url(${visitCardBg})` }" aria-label="就诊信息">
                 <div class="tc-visit-card__content">
                   <header class="tc-visit-card__title">
-                    <span class="tc-visit-card__icon">✚</span>
+                    <img class="tc-visit-card__icon" :src="prescriptionIcon" alt="" />
                     <strong>就诊信息</strong>
                   </header>
                   <dl>
@@ -83,10 +85,12 @@
 
               <div v-if="showDoctorFollowUp && !prescriptionReady && !consultCancelled" class="tc-decision">
                 <div class="tc-decision__label">请选择</div>
-                <button class="tc-decision-btn tc-decision-btn--ghost" type="button" @click="showCancelDialog = true">
-                  信息有误，取消开方
-                </button>
-                <button class="tc-decision-btn tc-decision-btn--primary" type="button" @click="confirmPrescription">无需补充，立即开方</button>
+                <div class="tc-decision__actions">
+                  <button class="tc-decision-btn tc-decision-btn--ghost" type="button" @click="showCancelDialog = true">
+                    信息有误，取消开方
+                  </button>
+                  <button class="tc-decision-btn tc-decision-btn--primary" type="button" @click="confirmPrescription">无需补充，立即开方</button>
+                </div>
               </div>
 
               <article v-if="consultCancelled" class="tc-patient-message">
@@ -185,7 +189,14 @@
 <script setup>
 import { computed, defineComponent, h, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Button, assetUrl } from "@jiahong/ui";
+import { ArrowLeft } from "@element-plus/icons-vue";
+import { Button } from "@jiahong/ui";
+import cancelConsultIcon from "@/assets/figma-text-consult/cancel-consult.svg";
+import doctorAvatarAsset from "@/assets/figma-text-consult/doctor-avatar.png";
+import prescriptionIcon from "@/assets/figma-text-consult/prescription.svg";
+import visitCardBg from "@/assets/figma-text-consult/visit-card-bg.png";
+import tipsCheckIcon from "@/assets/figma-text-consult/tips-check-circle-fill.svg";
+import tipsWarnIcon from "@/assets/figma-text-consult/tips-exclamation-circle-fill.svg";
 import { useConsultStore } from "@/stores/consult";
 
 const router = useRouter();
@@ -198,7 +209,7 @@ const consultCancelled = ref(false);
 const chatScrollRef = ref(null);
 let followTimer;
 
-const doctorAvatar = "/images/pu-test.png";
+const doctorAvatar = doctorAvatarAsset;
 const convenientVideoImage = "https://www.figma.com/api/mcp/asset/eaa8174d-5163-4383-8063-943885643861";
 
 const mentalWarnings = [
@@ -279,13 +290,19 @@ const MedicationReminder = defineComponent({
         h("section", { class: "tc-medicine__section" }, [
           h("h3", { class: "tc-medicine__warn-title" }, "以下情况请告知医生"),
           ...props.warnings.map((item) =>
-            h("p", { class: "tc-reminder-item tc-reminder-item--warn" }, [h("span", { "aria-hidden": "true" }, "!"), item])
+            h("p", { class: "tc-reminder-item tc-reminder-item--warn", key: `warn-${item}` }, [
+              h("img", { src: tipsWarnIcon, alt: "", "aria-hidden": "true" }),
+              h("span", { class: "tc-reminder-item__text" }, item)
+            ])
           )
         ]),
         h("section", { class: "tc-medicine__section" }, [
           h("h3", { class: "tc-medicine__safe-title" }, "安全提醒"),
           ...props.safety.map((item) =>
-            h("p", { class: "tc-reminder-item tc-reminder-item--safe" }, [h("span", { "aria-hidden": "true" }, "✓"), item])
+            h("p", { class: "tc-reminder-item tc-reminder-item--safe", key: `safe-${item}` }, [
+              h("img", { src: tipsCheckIcon, alt: "", "aria-hidden": "true" }),
+              h("span", { class: "tc-reminder-item__text" }, item)
+            ])
           )
         ])
       ]);
@@ -326,42 +343,53 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .text-consult-page {
-  min-height: var(--jh-viewport-height, 100vh);
+  min-width: 1440px;
+  min-height: 900px;
   color: #1f2329;
-  background: #f5f5f5;
+  background: #f4f5f6;
 }
 
 .page-topbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 54px;
+  box-sizing: border-box;
+  height: 56px;
   padding: 0 24px;
   border-bottom: 1px solid #eceef0;
-  background:
-    radial-gradient(circle at 21px 13px, #697383 0 2px, transparent 2.5px),
-    #fff;
-  box-shadow: 0 4px 12px rgba(24, 39, 75, 0.06);
+  background: #fff;
 }
 
 .page-topbar :deep(.jh-btn) {
-  height: 34px;
-  padding: 0 16px;
-  border-radius: 6px;
+  height: 32px;
+  padding: 5px 16px;
+  border-radius: 4px;
   font-size: 14px;
+  line-height: 22px;
 }
 
-.page-topbar :deep(.jh-btn img) {
+.page-topbar :deep(.page-topbar__back) {
+  width: 112px;
+  border: 0;
+  color: rgba(0, 0, 0, 0.6);
+  background: #f3f4f6;
+}
+
+.page-topbar__back-icon {
+  flex: 0 0 16px;
   width: 16px;
   height: 16px;
+  font-size: 16px;
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .page-topbar__right {
   display: flex;
   align-items: center;
-  gap: 18px;
+  gap: 24px;
   color: rgba(0, 0, 0, 0.6);
   font-size: 14px;
+  line-height: 22px;
 }
 
 .page-topbar__divider {
@@ -371,29 +399,32 @@ onBeforeUnmount(() => {
 }
 
 .text-consult-main {
-  padding: 12px 20px 18px;
+  box-sizing: border-box;
+  width: 1440px;
+  height: 844px;
+  margin: 0 auto;
+  padding: 15px 24px 33px;
 }
 
 .tc-shell {
-  width: 100%;
-  height: calc(var(--jh-viewport-height, 100vh) - 84px);
-  min-height: 0;
+  width: 1392px;
+  height: 796px;
   overflow: hidden;
-  border-radius: 20px;
-  background:
-    radial-gradient(circle at 20px 14px, #697383 0 1.5px, transparent 2px),
-    #fff;
-  box-shadow: 0 8px 28px rgba(30, 41, 59, 0.12);
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 4px 11.2px rgba(0, 0, 0, 0.15);
 }
 
 .tc-shell__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 58px;
-  padding: 0 34px;
-  border-bottom: 1px solid #e5e6eb;
-  background: #fff;
+  box-sizing: border-box;
+  height: 56px;
+  padding: 0 48px;
+  border-bottom: 0;
+  background: #fcfcfc;
+  box-shadow: 0 6px 16px -8px rgba(16, 42, 67, 0.08), 0 1px 3px rgba(16, 42, 67, 0.05);
 }
 
 .tc-shell__title {
@@ -406,37 +437,43 @@ onBeforeUnmount(() => {
   margin: 0;
   color: rgba(0, 0, 0, 0.9);
   font-size: 20px;
-  font-weight: 500;
-  line-height: 28px;
+  font-weight: 400;
+  line-height: 24px;
 }
 
 .tc-shell__title span {
   display: inline-flex;
   align-items: center;
   height: 32px;
-  padding: 0 12px;
-  border-radius: 5px;
-  color: #1476ff;
+  padding: 5px 12px;
+  border-radius: 4px;
+  color: #006ef9;
   font-size: 14px;
+  line-height: 22px;
   background: #dbeafe;
 }
 
 .tc-shell__header :deep(.jh-btn) {
-  height: 34px;
-  padding: 0 14px;
+  height: 32px;
+  padding: 5px 16px;
+  border: 1px solid #d8dde1;
   border-radius: 8px;
+  color: rgba(0, 0, 0, 0.6);
   font-size: 14px;
+  line-height: 22px;
+  background: #fff;
 }
 
-.power-icon {
-  margin-right: 6px;
-  font-size: 14px;
+.tc-cancel-consult-btn img {
+  flex: 0 0 12.67px;
+  width: 12.67px;
+  height: 12.67px;
 }
 
 .tc-shell__body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(360px, 455px);
-  height: calc(100% - 58px);
+  grid-template-columns: 937px 455px;
+  height: 740px;
   min-height: 0;
 }
 
@@ -446,7 +483,7 @@ onBeforeUnmount(() => {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  background: #fafafa;
+  background: #f8f8f9;
 }
 
 .tc-chat--decision {
@@ -456,14 +493,20 @@ onBeforeUnmount(() => {
 .tc-chat-scroll {
   position: relative;
   min-height: 0;
-  padding: 24px 38px 32px;
-  overflow: auto;
+  box-sizing: border-box;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
 }
 
 .tc-chat-time {
-  margin: 0 0 14px;
+  position: absolute;
+  top: 22px;
+  left: 0;
+  right: 0;
+  margin: 0;
   color: rgba(0, 0, 0, 0.4);
-  font-size: 13px;
+  font-size: 12px;
   line-height: 20px;
   text-align: center;
 }
@@ -472,15 +515,27 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  max-width: 620px;
+  width: 472px;
+}
+
+.tc-chat-scroll > .tc-doctor-message:not(.tc-doctor-message--follow):not(.tc-doctor-message--final) {
+  position: absolute;
+  top: 50px;
+  left: 39px;
 }
 
 .tc-doctor-message--follow {
-  margin-top: 32px;
+  position: absolute;
+  top: 432px;
+  left: 39px;
+  margin-top: 0;
 }
 
 .tc-doctor-message--final {
-  margin-top: 28px;
+  position: absolute;
+  top: 650px;
+  left: 39px;
+  margin-top: 0;
 }
 
 .tc-doctor-avatar {
@@ -506,23 +561,23 @@ onBeforeUnmount(() => {
 .tc-doctor-message__content {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
 }
 
 .tc-doctor-name {
-  color: rgba(0, 0, 0, 0.85);
+  color: rgba(0, 0, 0, 0.9);
   font-size: 14px;
-  line-height: 20px;
+  line-height: 22px;
 }
 
 .tc-doctor-bubble {
-  max-width: 520px;
+  max-width: 420px;
   padding: 14px 18px;
-  border-radius: 16px;
+  border-radius: 14px;
   color: rgba(0, 0, 0, 0.9);
-  font-size: 15px;
-  line-height: 26px;
+  font-size: 14px;
+  line-height: 22px;
   background: #fff;
 }
 
@@ -533,39 +588,30 @@ onBeforeUnmount(() => {
   width: 384px;
   height: 226px;
   min-height: 226px;
-  margin: 22px 52px 0 auto;
+  margin: 0;
   overflow: hidden;
   border: 1px solid #d1e5fe;
   border-radius: 6px;
-  background:
-    radial-gradient(ellipse at 82% 66%, rgba(210, 241, 255, 0.62) 0 18%, rgba(210, 241, 255, 0.2) 36%, transparent 58%),
-    radial-gradient(ellipse at 94% 58%, rgba(85, 180, 255, 0.16) 0 9%, transparent 34%),
-    linear-gradient(158deg, rgba(0, 111, 255, 0.032) 6%, rgba(0, 111, 255, 0) 29%),
-    linear-gradient(155deg, #fff 3%, rgba(255, 255, 255, 0.7) 97%);
+  background-image:
+    linear-gradient(158.27deg, rgba(0, 111, 255, 0.032) 6.11%, rgba(0, 111, 255, 0) 28.73%),
+    linear-gradient(155.2deg, #fff 3.39%, rgba(255, 255, 255, 0.7) 96.62%),
+    var(--visit-card-bg);
+  background-position: center, center, -1px -8px;
+  background-size: 100% 100%, 100% 100%, 114.13% 108.91%;
+  background-repeat: no-repeat;
   box-shadow: 0 6px 16px -8px rgba(16, 42, 67, 0.08), 0 1px 3px rgba(16, 42, 67, 0.05);
+}
+
+.tc-chat-scroll > .tc-visit-card {
+  position: absolute;
+  top: 190px;
+  left: 462px;
 }
 
 .tc-visit-card::before,
 .tc-visit-card::after {
-  position: absolute;
-  right: -12px;
-  bottom: 18px;
-  width: 216px;
-  height: 96px;
-  border: 2px solid rgba(160, 220, 255, 0.2);
-  border-radius: 50%;
-  content: "";
-  transform: rotate(-18deg);
-}
-
-.tc-visit-card::after {
-  right: 26px;
-  bottom: 36px;
-  width: 92px;
-  height: 92px;
-  border-width: 18px;
-  border-color: rgba(219, 246, 255, 0.56);
-  box-shadow: inset 0 0 0 14px rgba(198, 237, 255, 0.22);
+  display: none;
+  content: none;
 }
 
 .tc-visit-card__content {
@@ -583,35 +629,9 @@ onBeforeUnmount(() => {
 }
 
 .tc-visit-card__icon {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  flex: 0 0 24px;
   width: 24px;
   height: 24px;
-  border-radius: 4px;
-  color: #fff;
-  font-size: 0;
-  background: transparent;
-}
-
-.tc-visit-card__icon::before {
-  position: absolute;
-  inset: 3px 5px;
-  border-radius: 2px;
-  background: #1476ff;
-  content: "";
-}
-
-.tc-visit-card__icon::after {
-  position: absolute;
-  left: 10px;
-  top: 7px;
-  width: 7px;
-  height: 7px;
-  border-left: 2px solid #fff;
-  border-bottom: 2px solid #fff;
-  content: "";
 }
 
 .tc-visit-card__title strong {
@@ -646,8 +666,8 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   color: #fff;
   font-size: 20px;
@@ -657,34 +677,58 @@ onBeforeUnmount(() => {
 
 .tc-decision {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 16px;
-  margin: 32px 0 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 32px;
+  width: calc(100% + 78px);
+  height: 158px;
+  margin: 0;
+}
+
+.tc-chat-scroll > .tc-decision {
+  position: absolute;
+  top: 582px;
+  left: 0;
+  width: 937px;
 }
 
 .tc-decision__label {
   position: relative;
-  flex: 0 0 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 20px;
-  margin-bottom: 8px;
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 28px;
+  width: 100%;
+  gap: 0;
+  color: #7f7f7f;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 22px;
 }
 
 .tc-decision__label::before,
 .tc-decision__label::after {
   display: block;
-  width: 34%;
-  max-width: 340px;
   height: 1px;
   background: #d8dde1;
   content: "";
+}
+
+.tc-decision__label::before {
+  width: 394px;
+}
+
+.tc-decision__label::after {
+  width: 393px;
+}
+
+.tc-decision__label {
+  gap: 12px;
+}
+
+.tc-decision__actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
 .tc-decision-btn {
@@ -692,7 +736,8 @@ onBeforeUnmount(() => {
   height: 56px;
   border-radius: 8px;
   font: inherit;
-  font-size: 17px;
+  font-size: 17.28px;
+  line-height: 27.16px;
   cursor: pointer;
 }
 
@@ -708,6 +753,7 @@ onBeforeUnmount(() => {
   color: #fff;
   font-size: 16px;
   font-weight: 700;
+  line-height: 24px;
   background: linear-gradient(270deg, #3b92ff 0%, #006ef9 100%);
 }
 
@@ -716,7 +762,10 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   justify-content: flex-end;
   gap: 12px;
-  margin: 28px 0 0 auto;
+  position: absolute;
+  top: 582px;
+  right: 39px;
+  margin: 0;
 }
 
 .tc-patient-bubble {
@@ -747,9 +796,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: absolute;
+  top: 704px;
+  left: 39px;
   width: 384px;
   height: 126px;
-  margin: 14px 0 0 52px;
+  margin: 0;
   padding: 18px 32px 22px;
   border: 1px solid #b2d4fd;
   border-radius: 14px;
@@ -961,14 +1013,14 @@ onBeforeUnmount(() => {
   padding-left: 8px;
   color: rgba(0, 0, 0, 0.9);
   font-size: 16px;
-  font-weight: 500;
-  line-height: 28px;
+  font-weight: 400;
+  line-height: 24px;
 }
 
 .tc-reminder__intro h2::before {
   position: absolute;
   left: 0;
-  top: 6px;
+  top: 4px;
   width: 4px;
   height: 16px;
   border-radius: 1px;
@@ -977,7 +1029,7 @@ onBeforeUnmount(() => {
 }
 
 .tc-reminder__intro p {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   padding: 6px 12px;
   border-radius: 6px;
   color: #fe8125;
@@ -1070,27 +1122,16 @@ onBeforeUnmount(() => {
   line-height: 22px;
 }
 
-.tc-reminder-item span {
-  display: inline-flex;
+.tc-reminder-item img {
   flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
   width: 16px;
   height: 16px;
   margin-top: 3px;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
 }
 
-.tc-reminder-item--warn span {
-  background: #e37318;
-}
-
-.tc-reminder-item--safe span {
-  background: #2ba471;
+.tc-reminder-item__text {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .tc-medicine :deep(.tc-medicine__header) {
@@ -1166,27 +1207,16 @@ onBeforeUnmount(() => {
   line-height: 22px;
 }
 
-.tc-medicine :deep(.tc-reminder-item span) {
-  display: inline-flex;
+.tc-medicine :deep(.tc-reminder-item img) {
   flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
   width: 16px;
   height: 16px;
   margin-top: 3px;
-  border-radius: 50%;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 16px;
 }
 
-.tc-medicine :deep(.tc-reminder-item--warn span) {
-  background: #e37318;
-}
-
-.tc-medicine :deep(.tc-reminder-item--safe span) {
-  background: #2ba471;
+.tc-medicine :deep(.tc-reminder-item__text) {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .tc-status-toast {
