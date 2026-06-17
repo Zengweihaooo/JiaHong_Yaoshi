@@ -615,6 +615,8 @@ function toggleDiagnosis(tag) {
   } else {
     addDiagnosis(tag);
   }
+  syncDiagnosisKeyword();
+  showDiagnosisDropdown.value = false;
 }
 
 function addDiagnosis(tag) {
@@ -622,12 +624,15 @@ function addDiagnosis(tag) {
   if (!form.diagnoses.includes(tag)) {
     form.diagnoses.push(tag);
   }
-  form.diagnosisKeyword = "";
 }
 
 function removeDiagnosis(tag) {
   if (isDiagnosisDisabled(tag)) return;
   form.diagnoses = form.diagnoses.filter((item) => item !== tag);
+}
+
+function syncDiagnosisKeyword() {
+  form.diagnosisKeyword = form.diagnoses.join("、");
 }
 
 function isDiagnosisDisabled(tag) {

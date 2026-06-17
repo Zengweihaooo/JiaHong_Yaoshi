@@ -5,33 +5,26 @@
         <header class="consult-type-dialog__header">
           <h2 id="consult-type-title">请选择问诊药品类型</h2>
           <button class="consult-type-dialog__close" type="button" aria-label="关闭" @click="emit('close')">
-            <el-icon><Close /></el-icon>
+            <img :src="consultTypeCloseIcon" alt="" />
           </button>
         </header>
         <div class="consult-type-dialog__body">
           <button class="consult-type-option consult-type-option--active" type="button" @click="selectType('western')">
             <span class="consult-type-option__icon consult-type-option__icon--western" aria-hidden="true">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="2" />
-                <path d="M16 24h16M24 16v16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
-              </svg>
+              <img :src="westernIcon" alt="" />
             </span>
             <span class="consult-type-option__text">
               <strong>西药问诊</strong>
-              <span>为您匹配专业西医，并开具中西成药</span>
+              <span>为您匹配专业西医，开具中西成药</span>
             </span>
           </button>
           <button class="consult-type-option consult-type-option--default" type="button" @click="selectType('tcm')">
             <span class="consult-type-option__icon consult-type-option__icon--tcm" aria-hidden="true">
-              <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="10" y="14" width="28" height="24" rx="4" stroke="currentColor" stroke-width="2" />
-                <path d="M10 22h28" stroke="currentColor" stroke-width="2" />
-                <path d="M20 14V10a4 4 0 0 1 8 0v4" stroke="currentColor" stroke-width="2" />
-              </svg>
+              <img :src="tcmIcon" alt="" />
             </span>
             <span class="consult-type-option__text">
               <strong>中药问诊</strong>
-              <span>为您匹配专业中医，并开具中药饮片</span>
+              <span>为您匹配专业中医，开具中药饮品</span>
             </span>
           </button>
         </div>
@@ -41,7 +34,9 @@
 </template>
 
 <script setup>
-import { Close } from "@element-plus/icons-vue";
+import consultTypeCloseIcon from "@/assets/figma-consult-type/close.svg";
+import tcmIcon from "@/assets/figma-consult-type/icon-home-east.png";
+import westernIcon from "@/assets/figma-consult-type/icon-home-west.png";
 import { useConsultStore } from "@/stores/consult";
 import { useRouter } from "vue-router";
 
@@ -85,7 +80,7 @@ function selectType(type) {
   width: 365px;
   height: 297px;
   border-radius: 8px;
-  background: var(--jh-color-bg-surface, #fff);
+  background: #fff;
   box-shadow: 0 84px 64px -20px rgba(16, 42, 67, 0.18), 0 8px 16px -4px rgba(16, 42, 67, 0.1);
   overflow: hidden;
 }
@@ -119,18 +114,18 @@ function selectType(type) {
   height: 20px;
   padding: 0;
   border: 0;
-  border-radius: 4px;
-  color: #99a1af;
   background: transparent;
   cursor: pointer;
 }
 
-.consult-type-dialog__close .el-icon {
-  font-size: 20px;
+.consult-type-dialog__close img {
+  display: block;
+  width: 20px;
+  height: 20px;
 }
 
 .consult-type-dialog__close:hover {
-  background: var(--jh-color-bg-page);
+  background: transparent;
 }
 
 .consult-type-dialog__body {
@@ -140,7 +135,7 @@ function selectType(type) {
   gap: 16px;
   width: 100%;
   height: 228px;
-  padding: 0 0 16px;
+  padding: 0 20px 16px;
   box-sizing: border-box;
 }
 
@@ -152,7 +147,7 @@ function selectType(type) {
   box-sizing: border-box;
   width: 322px;
   height: 98px;
-  margin-left: 20px;
+  margin: 0;
   padding: 20px 16px;
   border: 1px solid #006ef9;
   border-radius: 8px;
@@ -173,9 +168,9 @@ function selectType(type) {
 }
 
 .consult-type-option:hover {
-  border-color: #5eb3ff;
-  background: #f5fbff;
-  box-shadow: 0 0 0 2px rgba(0, 110, 249, 0.08);
+  border-color: #006ef9;
+  background: #fff;
+  box-shadow: none;
 }
 
 .consult-type-option__icon {
@@ -185,14 +180,15 @@ function selectType(type) {
   justify-content: center;
   width: 48px;
   height: 48px;
-  border-radius: 50%;
-  color: var(--jh-color-bg-surface);
-  background: #46aef7;
+  border-radius: 0;
+  background: transparent;
 }
 
-.consult-type-option__icon svg {
-  width: 30px;
-  height: 30px;
+.consult-type-option__icon img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
 }
 
 .consult-type-option__text {
