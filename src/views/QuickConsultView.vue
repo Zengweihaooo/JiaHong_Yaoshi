@@ -195,7 +195,7 @@
                   @click="showDiagnosisDropdown = true"
                 />
                 <TransitionGroup
-                  v-if="form.diagnoses.length && !showDiagnosisDropdown"
+                  v-if="form.diagnoses.length && !hasDiagnosisSuggestionContext"
                   name="diagnosis-selected"
                   tag="div"
                   class="diagnosis-selected-tags"
@@ -611,7 +611,9 @@ const diagnosisDropdownTitle = computed(() => (showCommonDiagnosisDropdown.value
 const diagnosisDropdownOptions = computed(() =>
   showCommonDiagnosisDropdown.value ? commonDiagnosisOptions.value : diagnosisSuggestionOptions.value
 );
-const showDiagnosisOptions = computed(() => diagnosisDropdownOptions.value.length > 0 && showDiagnosisDropdown.value);
+const showDiagnosisOptions = computed(
+  () => diagnosisDropdownOptions.value.length > 0 && (hasDiagnosisSuggestionContext.value || showDiagnosisDropdown.value)
+);
 const diagnosisConfirmGroups = computed(() => {
   return form.medicines
     .map((medicine) => {
@@ -736,7 +738,7 @@ function addMedicine(option) {
   form.medicineKeyword = "";
   showMedicineDropdown.value = false;
   medicineFocused.value = false;
-  showDiagnosisDropdown.value = true;
+  showDiagnosisDropdown.value = false;
 }
 
 function registerNewMedicine() {
@@ -1578,17 +1580,14 @@ onBeforeUnmount(() => {
 }
 
 .diagnosis-dropdown--persistent {
-  position: absolute;
-  z-index: 30;
-  top: calc(100% + 8px);
-  left: 0;
-  max-height: 220px;
-  padding: 12px;
-  border: 1px solid #e5e8eb;
-  border-radius: 6px;
-  background: #fff;
-  box-shadow: 0 12px 28px rgba(16, 42, 67, 0.14), 0 2px 6px rgba(16, 42, 67, 0.08);
-  overflow-y: auto;
+  position: static;
+  max-height: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .diagnosis-dropdown--common {
