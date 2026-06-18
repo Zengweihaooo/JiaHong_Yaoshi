@@ -130,7 +130,8 @@
               </button>
             </div>
 
-            <footer class="tc-reply">
+            <!-- 医生要求二选一时隐藏自由输入，完成选择后恢复聊天输入框。 -->
+            <footer v-if="!showDoctorFollowUp || prescriptionReady || consultCancelled" class="tc-reply">
               <textarea placeholder="输入回复内容"></textarea>
               <div class="tc-reply__actions">
                 <button class="tc-image-action" type="button" aria-label="上传图片"></button>
@@ -496,7 +497,7 @@ onBeforeUnmount(() => {
 }
 
 .tc-chat--decision {
-  grid-template-rows: minmax(0, 1fr) 176px;
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .tc-chat--ready {
