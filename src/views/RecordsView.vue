@@ -350,9 +350,23 @@
                 </td>
                 <td>{{ record.realName }}</td>
                 <td class="operations">
-                  <button type="button">查看</button>
-                  <button v-if="record.printable" type="button">打印</button>
-                  <button v-if="record.more" type="button">更多<span class="chevron-down" aria-hidden="true"></span></button>
+                  <button class="operation-action" type="button">查看</button>
+                  <button v-if="record.printable" class="operation-action" type="button">打印</button>
+                  <div v-if="record.more" class="operation-more">
+                    <button
+                      class="operation-action operation-more__trigger"
+                      type="button"
+                      :aria-expanded="activeMoreRecordId === record.id"
+                      @click="toggleMoreMenu(record.id)"
+                    >
+                      更多<span class="chevron-down" aria-hidden="true"></span>
+                    </button>
+                    <div v-if="activeMoreRecordId === record.id" class="operation-more__menu">
+                      <button type="button" @click="chooseRecordAction('下载')">下载</button>
+                      <button type="button" @click="chooseRecordAction('重开处方')">重开处方</button>
+                      <button class="is-danger" type="button" @click="chooseRecordAction('作废')">作废</button>
+                    </div>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -389,6 +403,7 @@ const selectedStartDate = ref(null);
 const selectedEndDate = ref(null);
 const openSelectKey = ref("");
 const selectedRecordIds = ref([]);
+const activeMoreRecordId = ref(null);
 const selectValues = ref({
   consultType: "全部",
   consultStatus: "全部",
@@ -530,6 +545,18 @@ function closeOpenPopovers(event) {
   if (!event.target.closest(".select-control, .select-popover")) {
     openSelectKey.value = "";
   }
+  if (!event.target.closest(".operation-more")) {
+    activeMoreRecordId.value = null;
+  }
+}
+
+function toggleMoreMenu(recordId) {
+  activeMoreRecordId.value = activeMoreRecordId.value === recordId ? null : recordId;
+}
+
+// 操作完成后收起当前行菜单，后续接入接口时可在这里补充结果反馈。
+function chooseRecordAction() {
+  activeMoreRecordId.value = null;
 }
 
 const records = [
@@ -1411,18 +1438,27 @@ onBeforeUnmount(() => {
   background: #9aa6b6;
 }
 
-.operations button {
+.operation-action {
   margin-right: 30px;
-  padding: 0;
+  padding: 4px 6px;
   border: 0;
+  border-radius: 4px;
   color: #1478ff;
   font: inherit;
   font-size: 14px;
   background: transparent;
   cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
 }
 
-.operations button .chevron-down {
+.operation-action:hover,
+.operation-action:focus-visible {
+  color: #006ef9;
+  background: #eef4ff;
+  outline: none;
+}
+
+.operation-action .chevron-down {
   display: inline-block;
   margin-left: 6px;
   width: 6px;
@@ -1430,6 +1466,67 @@ onBeforeUnmount(() => {
   border-right: 1.3px solid currentColor;
   border-bottom: 1.3px solid currentColor;
   transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.operation-more {
+  position: relative;
+  display: inline-flex;
+}
+
+.operation-more__trigger[aria-expanded="true"] {
+  color: #006ef9;
+  background: #eef4ff;
+}
+
+.operation-more__trigger[aria-expanded="true"] .chevron-down {
+  transform: rotate(225deg);
+}
+
+.operation-more__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 20px;
+  z-index: 20;
+  width: 112px;
+  padding: 6px 0;
+  border: 1px solid #e5e8eb;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(16, 42, 67, 0.14);
+}
+
+.operation-more__menu button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 36px;
+  margin: 0;
+  padding: 0 14px;
+  border: 0;
+  color: #344054;
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  white-space: nowrap;
+  background: #fff;
+  cursor: pointer;
+}
+
+.operation-more__menu button:hover,
+.operation-more__menu button:focus-visible {
+  color: #006ef9;
+  background: #f3f7ff;
+  outline: none;
+}
+
+.operation-more__menu button.is-danger {
+  color: #cb2c2c;
+}
+
+.operation-more__menu button.is-danger:hover,
+.operation-more__menu button.is-danger:focus-visible {
+  background: #fff2f0;
 }
 
 .records-pagination {
