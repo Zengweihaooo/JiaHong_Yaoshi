@@ -37,6 +37,7 @@
             }"
             aria-label="问诊对话"
           >
+            <!-- 对话消息按发送顺序自然排列，新增内容只滚动消息区，不改变输入区位置。 -->
             <div ref="chatScrollRef" class="tc-chat-scroll">
               <p class="tc-chat-time">2026-01-13 16:38:21</p>
 
@@ -129,7 +130,7 @@
               </button>
             </div>
 
-            <footer v-if="!showDoctorFollowUp || prescriptionReady || consultCancelled" class="tc-reply">
+            <footer class="tc-reply">
               <textarea placeholder="输入回复内容"></textarea>
               <div class="tc-reply__actions">
                 <button class="tc-image-action" type="button" aria-label="上传图片"></button>
@@ -495,7 +496,7 @@ onBeforeUnmount(() => {
 }
 
 .tc-chat--decision {
-  grid-template-rows: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) 176px;
 }
 
 .tc-chat--ready {
@@ -508,27 +509,24 @@ onBeforeUnmount(() => {
 
 .tc-chat-scroll {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   min-height: 0;
   box-sizing: border-box;
   height: 100%;
-  padding: 0;
-  overflow: hidden;
+  padding: 22px 39px 28px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .tc-chat-time {
-  position: absolute;
-  top: 22px;
-  left: 0;
-  right: 0;
   margin: 0;
   color: rgba(0, 0, 0, 0.4);
   font-size: 12px;
   line-height: 20px;
   text-align: center;
-}
-
-.tc-chat--ready .tc-chat-time {
-  top: -114px;
 }
 
 .tc-doctor-message {
@@ -539,35 +537,15 @@ onBeforeUnmount(() => {
 }
 
 .tc-chat-scroll > .tc-doctor-message:not(.tc-doctor-message--follow):not(.tc-doctor-message--final) {
-  position: absolute;
-  top: 50px;
-  left: 39px;
-}
-
-.tc-chat--ready .tc-chat-scroll > .tc-doctor-message:not(.tc-doctor-message--follow):not(.tc-doctor-message--final) {
-  top: -86px;
+  margin-top: -4px;
 }
 
 .tc-doctor-message--follow {
-  position: absolute;
-  top: 432px;
-  left: 39px;
   margin-top: 0;
-}
-
-.tc-chat--ready .tc-doctor-message--follow {
-  top: 143px;
 }
 
 .tc-doctor-message--final {
-  position: absolute;
-  top: 650px;
-  left: 39px;
   margin-top: 0;
-}
-
-.tc-chat--ready .tc-doctor-message--final {
-  top: 349px;
 }
 
 .tc-doctor-avatar {
@@ -621,7 +599,8 @@ onBeforeUnmount(() => {
   height: 226px;
   min-height: 226px;
   margin: 0;
-  overflow: hidden;
+  /* 我方头像位于卡片右侧，不能被卡片边界裁切。 */
+  overflow: visible;
   border: 1px solid #d1e5fe;
   border-radius: 6px;
   background-image:
@@ -635,14 +614,9 @@ onBeforeUnmount(() => {
 }
 
 .tc-chat-scroll > .tc-visit-card {
-  position: absolute;
-  top: 190px;
-  left: 462px;
-}
-
-.tc-chat--ready .tc-chat-scroll > .tc-visit-card {
-  top: -99px;
-  left: 462px;
+  flex: 0 0 auto;
+  align-self: flex-end;
+  margin-right: 52px;
 }
 
 .tc-visit-card::before,
@@ -717,16 +691,13 @@ onBeforeUnmount(() => {
   flex-direction: column;
   align-items: center;
   gap: 32px;
-  width: calc(100% + 78px);
-  height: 158px;
+  width: 100%;
+  min-height: 158px;
   margin: 0;
 }
 
 .tc-chat-scroll > .tc-decision {
-  position: absolute;
-  top: 582px;
-  left: 0;
-  width: 937px;
+  flex: 0 0 auto;
 }
 
 .tc-decision__label {
@@ -751,11 +722,11 @@ onBeforeUnmount(() => {
 }
 
 .tc-decision__label::before {
-  width: 394px;
+  flex: 1;
 }
 
 .tc-decision__label::after {
-  width: 393px;
+  flex: 1;
 }
 
 .tc-decision__label {
@@ -799,20 +770,8 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   justify-content: flex-end;
   gap: 12px;
-  position: absolute;
-  top: 582px;
-  right: 39px;
+  align-self: flex-end;
   margin: 0;
-}
-
-.tc-chat--ready .tc-patient-message {
-  top: 283px;
-  right: 39px;
-}
-
-.tc-chat--cancelled .tc-patient-message {
-  top: 498px;
-  right: 39px;
 }
 
 .tc-patient-bubble {
@@ -843,9 +802,8 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: absolute;
-  top: 704px;
-  left: 39px;
+  position: relative;
+  flex: 0 0 auto;
   width: 384px;
   height: 126px;
   margin: 0;
@@ -858,11 +816,6 @@ onBeforeUnmount(() => {
     linear-gradient(90deg, #fff 0%, #fff 100%);
   box-shadow: 0 6px 8px rgba(16, 42, 67, 0.08), 0 1px 1.5px rgba(16, 42, 67, 0.05);
   cursor: pointer;
-}
-
-.tc-chat--ready .tc-print-card {
-  top: 439px;
-  left: 91px;
 }
 
 .tc-print-card__text {
@@ -1018,6 +971,7 @@ onBeforeUnmount(() => {
 }
 
 .tc-quick-reply {
+  min-width: 84px;
   height: 32px;
   padding: 0 14px;
   border: 1px solid #1476ff;
@@ -1026,6 +980,8 @@ onBeforeUnmount(() => {
   font: inherit;
   font-size: 13px;
   font-weight: 700;
+  line-height: 20px;
+  white-space: nowrap;
   background: #fff;
   cursor: pointer;
 }
