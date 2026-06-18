@@ -374,17 +374,63 @@
         </div>
 
         <footer class="records-pagination">
-          <button class="page-size" type="button">20 条/页<span class="chevron-down" aria-hidden="true"></span></button>
-          <button class="page-nav" type="button">‹</button>
-          <button class="page-number is-current" type="button">1</button>
-          <button class="page-number" type="button">2</button>
-          <button class="page-number" type="button">3</button>
-          <button class="page-number" type="button">4</button>
-          <button class="page-number" type="button">5</button>
-          <span class="page-ellipsis">...</span>
-          <button class="page-number" type="button">11</button>
-          <button class="page-nav" type="button">›</button>
-          <span class="page-jump">跳至 <input type="text" value="11" aria-label="页码" /> /20 页</span>
+          <div class="page-size-wrap">
+            <button
+              class="page-size"
+              type="button"
+              :aria-expanded="pageSizeMenuOpen"
+              @click="pageSizeMenuOpen = !pageSizeMenuOpen"
+            >
+              {{ pageSize }} 条/页<span class="page-chevron" aria-hidden="true"></span>
+            </button>
+            <div v-if="pageSizeMenuOpen" class="page-size-menu">
+              <button
+                v-for="size in pageSizeOptions"
+                :key="size"
+                :class="{ 'is-selected': pageSize === size }"
+                type="button"
+                @click="changePageSize(size)"
+              >
+                {{ size }} 条/页
+              </button>
+            </div>
+          </div>
+          <button class="page-nav page-nav--prev" type="button" aria-label="上一页" :disabled="currentPage === 1" @click="changePage(currentPage - 1)">
+            <span aria-hidden="true"></span>
+          </button>
+          <template v-for="item in visiblePageItems" :key="item.key">
+            <span v-if="item.type === 'ellipsis'" class="page-ellipsis">...</span>
+            <button
+              v-else
+              :class="['page-number', { 'is-current': item.page === currentPage }]"
+              type="button"
+              :aria-current="item.page === currentPage ? 'page' : undefined"
+              @click="changePage(item.page)"
+            >
+              {{ item.page }}
+            </button>
+          </template>
+          <button
+            class="page-nav page-nav--next"
+            type="button"
+            aria-label="下一页"
+            :disabled="currentPage === totalPages"
+            @click="changePage(currentPage + 1)"
+          >
+            <span aria-hidden="true"></span>
+          </button>
+          <label class="page-jump">
+            <span>跳至</span>
+            <input
+              v-model="jumpPageInput"
+              type="text"
+              inputmode="numeric"
+              aria-label="页码"
+              @keydown.enter.prevent="applyJumpPage"
+              @blur="applyJumpPage"
+            />
+            <span>/{{ totalPages }} 页</span>
+          </label>
         </footer>
       </section>
     </main>
@@ -404,6 +450,12 @@ const selectedEndDate = ref(null);
 const openSelectKey = ref("");
 const selectedRecordIds = ref([]);
 const activeMoreRecordId = ref(null);
+const pageSize = ref(20);
+const currentPage = ref(1);
+const jumpPageInput = ref("1");
+const pageSizeMenuOpen = ref(false);
+const pageSizeOptions = [10, 20, 50];
+const totalRecords = 220;
 const selectValues = ref({
   consultType: "全部",
   consultStatus: "全部",
@@ -439,6 +491,27 @@ const calendars = computed(() => {
 
 const selectedStartLabel = computed(() => selectedStartDate.value ? formatDateLabel(selectedStartDate.value) : "开始日期时间");
 const selectedEndLabel = computed(() => selectedEndDate.value ? formatDateLabel(selectedEndDate.value) : "结束日期时间");
+const totalPages = computed(() => Math.max(1, Math.ceil(totalRecords / pageSize.value)));
+
+// 页码较多时保留首尾页，并围绕当前页生成连续页码。
+const visiblePageItems = computed(() => {
+  const pages = [];
+  const total = totalPages.value;
+  if (total <= 7) {
+    for (let page = 1; page <= total; page += 1) pages.push(page);
+  } else if (currentPage.value <= 4) {
+    pages.push(1, 2, 3, 4, 5, "ellipsis-right", total);
+  } else if (currentPage.value >= total - 3) {
+    pages.push(1, "ellipsis-left", total - 4, total - 3, total - 2, total - 1, total);
+  } else {
+    pages.push(1, "ellipsis-left", currentPage.value - 1, currentPage.value, currentPage.value + 1, "ellipsis-right", total);
+  }
+  return pages.map((item) =>
+    typeof item === "number"
+      ? { key: `page-${item}`, type: "page", page: item }
+      : { key: item, type: "ellipsis" }
+  );
+});
 
 function monthStart(date) {
   return new Date(date.getFullYear(), date.getMonth(), 1);
@@ -548,6 +621,9 @@ function closeOpenPopovers(event) {
   if (!event.target.closest(".operation-more")) {
     activeMoreRecordId.value = null;
   }
+  if (!event.target.closest(".page-size-wrap")) {
+    pageSizeMenuOpen.value = false;
+  }
 }
 
 function toggleMoreMenu(recordId) {
@@ -557,6 +633,22 @@ function toggleMoreMenu(recordId) {
 // 操作完成后收起当前行菜单，后续接入接口时可在这里补充结果反馈。
 function chooseRecordAction() {
   activeMoreRecordId.value = null;
+}
+
+function changePage(page) {
+  currentPage.value = Math.min(totalPages.value, Math.max(1, page));
+  jumpPageInput.value = String(currentPage.value);
+}
+
+function changePageSize(size) {
+  pageSize.value = size;
+  pageSizeMenuOpen.value = false;
+  changePage(Math.min(currentPage.value, totalPages.value));
+}
+
+function applyJumpPage() {
+  const page = Number.parseInt(jumpPageInput.value, 10);
+  changePage(Number.isFinite(page) ? page : currentPage.value);
 }
 
 const records = [
@@ -1552,19 +1644,66 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.page-size {
-  width: 126px;
+.page-size-wrap {
+  position: relative;
   margin-right: 18px;
 }
 
-.page-size .chevron-down {
+.page-size {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  width: 126px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.page-chevron {
   display: inline-block;
-  margin-left: 16px;
   width: 7px;
   height: 7px;
   border-right: 1.4px solid currentColor;
   border-bottom: 1.4px solid currentColor;
   transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+
+.page-size[aria-expanded="true"] .page-chevron {
+  transform: rotate(225deg);
+}
+
+.page-size-menu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 20;
+  width: 126px;
+  padding: 6px 0;
+  border: 1px solid #e5e8eb;
+  border-radius: 5px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(16, 42, 67, 0.14);
+}
+
+.page-size-menu button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 34px;
+  padding: 0 16px;
+  border: 0;
+  color: #59636e;
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.page-size-menu button:hover,
+.page-size-menu button.is-selected {
+  color: #1478ff;
+  background: #f3f7ff;
 }
 
 .page-number,
@@ -1579,9 +1718,40 @@ onBeforeUnmount(() => {
 }
 
 .page-nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border-color: transparent;
   color: #98a2ad;
-  font-size: 24px;
+  background: transparent;
+}
+
+.page-nav span {
+  display: block;
+  width: 7px;
+  height: 7px;
+  border-left: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+}
+
+.page-nav--prev span {
+  transform: rotate(45deg);
+}
+
+.page-nav--next span {
+  transform: rotate(225deg);
+}
+
+.page-nav:disabled {
+  color: #d8dde1;
+  cursor: not-allowed;
+}
+
+.page-size:hover,
+.page-number:hover:not(.is-current),
+.page-nav:hover:not(:disabled) {
+  border-color: #1478ff;
+  color: #1478ff;
 }
 
 .page-ellipsis {
@@ -1598,6 +1768,7 @@ onBeforeUnmount(() => {
   height: 38px;
   border-radius: 4px;
   background: #f1f2f4;
+  white-space: nowrap;
 }
 
 .page-jump input {
@@ -1609,6 +1780,12 @@ onBeforeUnmount(() => {
   font: inherit;
   text-align: center;
   background: #fff;
+  outline: none;
+}
+
+.page-jump input:focus {
+  border-color: #1478ff;
+  box-shadow: 0 0 0 1px rgba(20, 120, 255, 0.12);
 }
 
 .col-check {
