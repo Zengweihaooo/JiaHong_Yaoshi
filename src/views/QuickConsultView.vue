@@ -129,15 +129,36 @@
                     <input class="jh-input-field jh-input-field--sm visit-method-field" type="text" value="复诊" disabled />
                   </label>
                   <div class="form-field form-field--upload">
-                    <span class="form-field__label"><em v-if="hasMedicines">*</em>复诊凭证</span>
+                    <span class="form-field__label">复诊凭证</span>
                     <div class="upload-panel">
                       <p class="upload-panel__hint">
                         （支持上传线下就诊历史处方、门诊病历、出院记录等。最多上传5张；支持jpg、png格式，单张大小不超过5M）
                         <a href="#" @click.prevent>示例图片</a>
                       </p>
-                      <button class="upload-panel__box" type="button" aria-label="上传复诊凭证">
-                        <span>+</span>
-                      </button>
+                      <!-- 上传后按 Figma 网格展示缩略图，保留最后一个位置继续添加图片。 -->
+                      <div class="upload-panel__grid">
+                        <div v-for="image in proofImages" :key="image.id" class="upload-panel__preview">
+                          <img :src="image.url" :alt="image.name" />
+                          <button type="button" :aria-label="`移除${image.name}`" @click="removeProofImage(image.id)">×</button>
+                        </div>
+                        <button
+                          v-if="proofImages.length < maxProofImages"
+                          class="upload-panel__box"
+                          type="button"
+                          aria-label="上传复诊凭证"
+                          @click="openProofPicker"
+                        >
+                          <span>+</span>
+                        </button>
+                      </div>
+                      <input
+                        ref="proofInput"
+                        type="file"
+                        accept="image/jpeg,image/png"
+                        multiple
+                        hidden
+                        @change="handleProofFiles"
+                      />
                     </div>
                   </div>
                 </div>
@@ -449,7 +470,11 @@ const medicineFocused = ref(false);
 const activeUnitMedicineId = ref(null);
 const patientNameFocused = ref(false);
 const patientNameInput = ref(null);
+const proofInput = ref(null);
+const proofImages = ref([]);
 const confirmDiagnosisSelections = reactive({});
+const maxProofImages = 5;
+const maxProofFileSize = 5 * 1024 * 1024;
 
 const consultType = computed(() => route.query.type || consultStore.consultType || "western");
 const consultSource = computed(() => route.query.source || consultStore.consultSource || "text");
@@ -561,7 +586,6 @@ const guardianComplete = computed(() => {
 });
 
 const canEditMedicine = computed(() => patientBaseComplete.value && guardianComplete.value);
-const hasMedicines = computed(() => canEditMedicine.value && form.medicines.length > 0);
 const showPregnancyOptions = computed(() => form.gender === "female");
 const requiresIdentityInfo = computed(() => {
   const keyword = form.medicineKeyword.trim();
@@ -790,6 +814,35 @@ function clearPatientName() {
   focusPatientNameInput();
 }
 
+function openProofPicker() {
+  proofInput.value?.click();
+}
+
+function handleProofFiles(event) {
+  const availableCount = maxProofImages - proofImages.value.length;
+  const selectedFiles = Array.from(event.target.files || [])
+    .filter((file) => ["image/jpeg", "image/png"].includes(file.type) && file.size <= maxProofFileSize)
+    .slice(0, availableCount);
+
+  selectedFiles.forEach((file) => {
+    proofImages.value.push({
+      id: `${file.name}-${file.lastModified}-${crypto.randomUUID()}`,
+      name: file.name,
+      file,
+      url: URL.createObjectURL(file)
+    });
+  });
+
+  // 清空原始值后，用户可以再次选择同一张图片。
+  event.target.value = "";
+}
+
+function removeProofImage(id) {
+  const image = proofImages.value.find((item) => item.id === id);
+  if (image) URL.revokeObjectURL(image.url);
+  proofImages.value = proofImages.value.filter((item) => item.id !== id);
+}
+
 function handleSubmit() {
   if (!form.agreed) {
     showConsentDialog.value = true;
@@ -885,6 +938,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   document.removeEventListener("mousedown", closeDiagnosisDropdown);
+  proofImages.value.forEach((image) => URL.revokeObjectURL(image.url));
 });
 </script>
 
@@ -1203,7 +1257,7 @@ onBeforeUnmount(() => {
 }
 
 .form-field__label--gender {
-  color: var(--jh-color-danger);
+  color: rgba(0, 0, 0, 0.6);
   font-size: 14px;
   font-weight: 400;
   line-height: 22px;
@@ -1410,7 +1464,7 @@ onBeforeUnmount(() => {
 
 .form-field__suffix .jh-input-field {
   width: 123px;
-  border-radius: 6px 0 0 6px;
+  border-radius: 3px 0 0 3px;
 }
 
 .visit-method-field {
@@ -1427,7 +1481,7 @@ onBeforeUnmount(() => {
 }
 
 .upload-panel__hint {
-  height: 111px;
+  min-height: 91px;
   margin: 0 0 9px;
   width: 158px;
   color: rgba(0, 0, 0, 0.4);
@@ -1447,13 +1501,57 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 60px;
-  height: 60px;
+  width: 42px;
+  height: 42px;
   border: 0.8px dashed #bec5cd;
   border-radius: 1.5px;
   color: rgba(0, 0, 0, 0.4);
   font-size: 22px;
   background: #fff;
+  cursor: pointer;
+}
+
+.upload-panel__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 42px);
+  grid-auto-rows: 42px;
+  gap: 8px;
+  width: 142px;
+}
+
+.upload-panel__preview {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  overflow: hidden;
+  border: 0.8px solid #d8dde1;
+  border-radius: 1.5px;
+  background: #fcfcfc;
+}
+
+.upload-panel__preview img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.upload-panel__preview button {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 12px;
+  line-height: 14px;
+  background: rgba(0, 0, 0, 0.55);
   cursor: pointer;
 }
 
