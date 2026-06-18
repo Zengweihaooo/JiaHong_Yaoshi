@@ -283,7 +283,18 @@
             </colgroup>
             <thead>
               <tr>
-                <th><span class="fake-checkbox" /></th>
+                <th>
+                  <label class="table-checkbox">
+                    <input
+                      type="checkbox"
+                      aria-label="全选问诊记录"
+                      :checked="allRecordsSelected"
+                      :indeterminate="someRecordsSelected"
+                      @change="toggleAllRecords"
+                    />
+                    <span aria-hidden="true" />
+                  </label>
+                </th>
                 <th>问诊号</th>
                 <th>患者姓名</th>
                 <th>年龄</th>
@@ -301,7 +312,12 @@
             </thead>
             <tbody>
               <tr v-for="record in records" :key="record.id">
-                <td><span class="fake-checkbox" /></td>
+                <td>
+                  <label class="table-checkbox">
+                    <input v-model="selectedRecordIds" type="checkbox" :value="record.id" :aria-label="`选择问诊记录${record.no}`" />
+                    <span aria-hidden="true" />
+                  </label>
+                </td>
                 <td>{{ record.no }}</td>
                 <td>{{ record.patient }}</td>
                 <td>{{ record.age }}</td>
@@ -362,7 +378,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Button, assetUrl } from "@jiahong/ui";
 import { useRouter } from "vue-router";
 
@@ -372,6 +388,7 @@ const calendarStartMonth = ref(new Date(2026, 5, 1));
 const selectedStartDate = ref(null);
 const selectedEndDate = ref(null);
 const openSelectKey = ref("");
+const selectedRecordIds = ref([]);
 const selectValues = ref({
   consultType: "全部",
   consultStatus: "全部",
@@ -505,6 +522,16 @@ function chooseSelect(key, option) {
   openSelectKey.value = "";
 }
 
+// 日期和筛选菜单共享点击空白处关闭逻辑，避免弹层在页面上常驻。
+function closeOpenPopovers(event) {
+  if (!event.target.closest(".filter-field--date")) {
+    datePickerOpen.value = false;
+  }
+  if (!event.target.closest(".select-control, .select-popover")) {
+    openSelectKey.value = "";
+  }
+}
+
 const records = [
   {
     id: 1,
@@ -633,6 +660,26 @@ const records = [
     more: false
   }
 ];
+
+const allRecordsSelected = computed(() => {
+  return records.length > 0 && selectedRecordIds.value.length === records.length;
+});
+
+const someRecordsSelected = computed(() => {
+  return selectedRecordIds.value.length > 0 && !allRecordsSelected.value;
+});
+
+function toggleAllRecords(event) {
+  selectedRecordIds.value = event.target.checked ? records.map((record) => record.id) : [];
+}
+
+onMounted(() => {
+  document.addEventListener("mousedown", closeOpenPopovers);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("mousedown", closeOpenPopovers);
+});
 </script>
 
 <style scoped>
@@ -848,7 +895,9 @@ const records = [
 }
 
 .select-popover button {
-  display: block;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
   width: 100%;
   height: 42px;
   padding: 0 22px;
@@ -856,8 +905,11 @@ const records = [
   color: #606872;
   font: inherit;
   font-size: 16px;
-  line-height: 42px;
+  line-height: 22px;
   text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   background: #fff;
   cursor: pointer;
 }
@@ -1204,14 +1256,66 @@ const records = [
   padding-left: 8px;
 }
 
-.fake-checkbox {
-  display: inline-block;
+.table-checkbox {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.table-checkbox input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.table-checkbox span {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
   width: 16px;
   height: 16px;
   border: 1px solid #d8dde1;
   border-radius: 4px;
   background: #fff;
-  vertical-align: middle;
+}
+
+.table-checkbox:hover span {
+  border-color: #1478ff;
+}
+
+.table-checkbox input:checked + span,
+.table-checkbox input:indeterminate + span {
+  border-color: #1478ff;
+  background: #1478ff;
+}
+
+.table-checkbox input:checked + span::after {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 6px;
+  height: 3px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  content: "";
+  transform: rotate(-45deg);
+}
+
+.table-checkbox input:indeterminate + span::after {
+  position: absolute;
+  top: 6px;
+  left: 3px;
+  width: 8px;
+  height: 2px;
+  border-radius: 1px;
+  background: #fff;
+  content: "";
 }
 
 .consult-type {
