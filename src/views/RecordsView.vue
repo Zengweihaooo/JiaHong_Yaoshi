@@ -59,7 +59,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="record in visibleRecords" :key="record.id">
+              <tr v-for="record in pagedRecords" :key="record.id">
                 <td class="check"><input v-model="selected" type="checkbox" :value="record.id" /></td>
                 <td>{{ record.no }}</td><td>{{ record.patient }}</td><td>{{ record.age }}</td><td>{{ record.doctor }}</td><td>{{ record.clerk }}</td>
                 <td><span class="type-tag" :class="record.type === '视频问诊' ? 'video' : 'text'">{{ record.type }}</span></td>
@@ -75,12 +75,15 @@
           </table>
         </div>
         <footer class="pagination">
-          <span>共 XX 条</span>
-          <div class="page-size-wrap"><button class="page-size" type="button" @click.stop="pageSizeOpen = !pageSizeOpen">{{ pageSize }} 条/页 <i class="chevron" :class="{ up: pageSizeOpen }"></i></button><div v-if="pageSizeOpen" class="action-menu page-size-menu"><button v-for="size in [10,20,50,100]" :key="size" type="button" @click="changePageSize(size)">{{ size }} 条/页</button></div></div>
-          <button class="arrow" :disabled="currentPage === 1" type="button" @click="currentPage = Math.max(1, currentPage - 1)">‹</button>
-          <button v-for="page in [1,2,3,4,5]" :key="page" class="page" :class="{ active: currentPage === page }" type="button" @click="currentPage = page">{{ page }}</button>
-          <span class="ellipsis">···</span><button class="page" :class="{ active: currentPage === 11 }" type="button" @click="currentPage = 11">11</button><button class="arrow" type="button" @click="currentPage = Math.min(20, currentPage + 1)">›</button>
-          <span class="jump">跳至 <input v-model.number="jumpPage" min="1" max="20" type="number" @keyup.enter="jumpToPage" /> /20 页</span>
+          <span>共 {{ filteredRecords.length }} 条</span>
+          <div class="page-size-wrap"><button class="page-size" type="button" @click.stop="togglePageSize">{{ pageSize }} 条/页 <i class="chevron" :class="{ up: pageSizeOpen }"></i></button><div v-if="pageSizeOpen" class="action-menu page-size-menu"><button v-for="size in pageSizeOptions" :key="size" :class="{ selected: size === pageSize }" type="button" @click="changePageSize(size)">{{ size }} 条/页</button></div></div>
+          <button class="arrow" :disabled="currentPage === 1" type="button" @click="changePage(currentPage - 1)">‹</button>
+          <template v-for="item in visiblePageItems" :key="item.key">
+            <span v-if="item.type === 'ellipsis'" class="ellipsis">···</span>
+            <button v-else class="page" :class="{ active: currentPage === item.page }" type="button" @click="changePage(item.page)">{{ item.page }}</button>
+          </template>
+          <button class="arrow" :disabled="currentPage === totalPages" type="button" @click="changePage(currentPage + 1)">›</button>
+          <span class="jump">跳至 <input v-model.number="jumpPage" min="1" :max="totalPages" type="number" @keyup.enter="jumpToPage" /> /{{ totalPages }} 页</span>
         </footer>
       </section>
     </main>
@@ -95,7 +98,7 @@
 </template>
 
 <script setup>
-import { computed, defineComponent, h, onBeforeUnmount, onMounted, reactive, ref } from "vue";
+import { computed, defineComponent, h, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
@@ -109,8 +112,8 @@ const defaultFilters = { type: "全部", status: "全部", payment: "全部", au
 const filters = reactive({ ...defaultFilters });
 const appliedFilters = reactive({ ...defaultFilters });
 const optionMap = { "问诊类型": ["全部", "图文问诊", "视频问诊"], "问诊状态": ["全部", "完成问诊", "取消问诊"], "支付状态": ["全部", "无", "未支付", "已支付"], "审方状态": ["全部", "未申请", "待修改", "未审核", "未签名", "已完成", "已作废"], "药品实名": ["全部", "是", "否"], "药品名称": ["全部", "草酸艾司西酞普兰片", "感冒片", "感冒灵胶囊"], "问诊号": ["全部", "XXXXXX"] };
-function resetFilters() { Object.assign(filters, defaultFilters); Object.assign(appliedFilters, defaultFilters); clearDate(); perform("筛选条件已重置"); }
-function runQuery() { Object.assign(appliedFilters, filters); perform("查询完成"); }
+function resetFilters() { Object.assign(filters, defaultFilters); Object.assign(appliedFilters, defaultFilters); clearDate(); selected.value = []; changePage(1); perform("筛选条件已重置"); }
+function runQuery() { Object.assign(appliedFilters, filters); selected.value = []; changePage(1); perform("查询完成"); }
 
 const FilterSelect = defineComponent({
   props: { label: String, modelValue: String }, emits: ["update:modelValue"],
@@ -127,19 +130,55 @@ const FilterSelect = defineComponent({
   }
 });
 
-const records = [
-  { id: 1, no: "XXXXXX", patient: "童童", age: "3岁", doctor: "XXX", clerk: "-", type: "图文问诊", status: "完成问诊", start: "18：05：30", end: "18：05：30", payment: "无", audit: "已完成", auditTone: "done", auditIcon: "✓", realName: "否", diagnosis: "抑郁症", medicine: "草酸艾司西酞普兰片", printable: true, more: true },
-  { id: 2, no: "XXXXXX", patient: "-", age: "-", doctor: "XXX", clerk: "-", type: "视频问诊", status: "完成问诊", start: "18：05：30", end: "18：05：30", payment: "无", audit: "未签名", auditTone: "unsigned", auditIcon: "−", realName: "否", diagnosis: "感冒", medicine: "感冒片", printable: true, more: true },
-  { id: 3, no: "XXXXXX", patient: "-", age: "-", doctor: "XXX", clerk: "-", type: "图文问诊", status: "取消问诊", start: "18：05：30", end: "18：05：30", payment: "无", audit: "-", realName: "否", diagnosis: "感冒", medicine: "感冒灵胶囊", printable: false, more: false },
-  { id: 4, no: "XXXXXX", patient: "XXX", age: "XXX", doctor: "XXX", clerk: "-", type: "图文问诊", status: "完成问诊", start: "18：05：30", end: "18：05：30", payment: "无", audit: "已作废", auditTone: "void", auditIcon: "×", realName: "否", diagnosis: "抑郁症", medicine: "草酸艾司西酞普兰片", printable: true, more: true },
-  { id: 5, no: "XXXXXX", patient: "-", age: "-", doctor: "XXX", clerk: "-", type: "视频问诊", status: "完成问诊", start: "18：05：30", end: "18：05：30", payment: "无", audit: "未签名", auditTone: "unsigned", auditIcon: "−", realName: "否", diagnosis: "感冒", medicine: "感冒片", printable: true, more: true },
-  { id: 6, no: "XXXXXX", patient: "黄黄", age: "22岁", doctor: "XXX", clerk: "-", type: "图文问诊", status: "完成问诊", start: "18：05：30", end: "18：05：30", payment: "无", audit: "已完成", auditTone: "done", auditIcon: "✓", realName: "否", diagnosis: "抑郁症", medicine: "草酸艾司西酞普兰片", printable: true, more: true }
+const seedRecords = [
+  { patient: "童童", age: "3岁", doctor: "XXX", clerk: "-", type: "图文问诊", status: "完成问诊", payment: "无", audit: "已完成", diagnosis: "抑郁症", medicine: "草酸艾司西酞普兰片" },
+  { patient: "-", age: "-", doctor: "XXX", clerk: "-", type: "视频问诊", status: "完成问诊", payment: "无", audit: "未签名", diagnosis: "感冒", medicine: "感冒片" },
+  { patient: "-", age: "-", doctor: "XXX", clerk: "-", type: "图文问诊", status: "取消问诊", payment: "无", audit: "-", diagnosis: "感冒", medicine: "感冒灵胶囊" },
+  { patient: "XXX", age: "XXX", doctor: "XXX", clerk: "-", type: "图文问诊", status: "完成问诊", payment: "无", audit: "已作废", diagnosis: "抑郁症", medicine: "草酸艾司西酞普兰片" },
+  { patient: "黄黄", age: "22岁", doctor: "XXX", clerk: "小李", type: "视频问诊", status: "完成问诊", payment: "未支付", audit: "未审核", diagnosis: "感冒", medicine: "感冒片" },
+  { patient: "林林", age: "31岁", doctor: "XXX", clerk: "小王", type: "图文问诊", status: "完成问诊", payment: "已支付", audit: "待修改", diagnosis: "焦虑症", medicine: "草酸艾司西酞普兰片" },
+  { patient: "阿明", age: "45岁", doctor: "XXX", clerk: "小周", type: "视频问诊", status: "完成问诊", payment: "已支付", audit: "未申请", diagnosis: "感冒", medicine: "感冒灵胶囊" }
 ];
+const auditMeta = {
+  "已完成": { auditTone: "done", auditIcon: "✓" },
+  "未签名": { auditTone: "unsigned", auditIcon: "−" },
+  "未审核": { auditTone: "unsigned", auditIcon: "−" },
+  "待修改": { auditTone: "unsigned", auditIcon: "−" },
+  "未申请": { auditTone: "unsigned", auditIcon: "−" },
+  "已作废": { auditTone: "void", auditIcon: "×" },
+  "-": { auditTone: "none", auditIcon: "" }
+};
+const records = Array.from({ length: 137 }, (_, index) => {
+  const seed = seedRecords[index % seedRecords.length];
+  const hour = String(8 + (index % 12)).padStart(2, "0");
+  const minute = String((index * 7) % 60).padStart(2, "0");
+  const second = String((index * 11) % 60).padStart(2, "0");
+  const meta = auditMeta[seed.audit] || auditMeta["-"];
+  return {
+    id: index + 1,
+    no: "WZ" + String(202606220000 + index + 1),
+    patient: index < 4 ? seed.patient : (seed.patient === "-" ? "患者" : seed.patient) + (index + 1),
+    age: seed.age,
+    doctor: seed.doctor,
+    clerk: seed.clerk,
+    type: seed.type,
+    status: seed.status,
+    start: hour + "：" + minute + "：" + second,
+    end: hour + "：" + String((Number(minute) + 5) % 60).padStart(2, "0") + "：" + second,
+    payment: seed.payment,
+    audit: seed.audit,
+    auditTone: meta.auditTone,
+    auditIcon: meta.auditIcon,
+    realName: index % 9 === 0 ? "是" : "否",
+    diagnosis: seed.diagnosis,
+    medicine: seed.medicine,
+    printable: seed.status !== "取消问诊",
+    more: seed.status !== "取消问诊"
+  };
+});
 const selected = ref([]);
-const allSelected = computed(() => selected.value.length === records.length);
-const someSelected = computed(() => selected.value.length > 0 && !allSelected.value);
-function toggleAll(event) { selected.value = event.target.checked ? records.map((item) => item.id) : []; }
-const visibleRecords = computed(() => records.filter((record) => {
+const pageSizeOptions = [20, 50, 100];
+const filteredRecords = computed(() => records.filter((record) => {
   if (appliedFilters.type !== "全部" && record.type !== appliedFilters.type) return false;
   if (appliedFilters.status !== "全部" && record.status !== appliedFilters.status) return false;
   if (appliedFilters.audit !== "全部" && record.audit !== appliedFilters.audit) return false;
@@ -151,6 +190,19 @@ const visibleRecords = computed(() => records.filter((record) => {
   if (appliedFilters.diagnosis && !record.diagnosis.includes(appliedFilters.diagnosis)) return false;
   return true;
 }));
+const totalPages = computed(() => Math.max(1, Math.ceil(filteredRecords.value.length / pageSize.value)));
+const pagedRecords = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredRecords.value.slice(start, start + pageSize.value);
+});
+const allSelected = computed(() => pagedRecords.value.length > 0 && pagedRecords.value.every((item) => selected.value.includes(item.id)));
+const someSelected = computed(() => pagedRecords.value.some((item) => selected.value.includes(item.id)) && !allSelected.value);
+function toggleAll(event) {
+  const pageIds = pagedRecords.value.map((item) => item.id);
+  selected.value = event.target.checked
+    ? Array.from(new Set([...selected.value, ...pageIds]))
+    : selected.value.filter((id) => !pageIds.includes(id));
+}
 
 const openSelectKey = ref("");
 const dateOpen = ref(false), selectedStartDate = ref(null), selectedEndDate = ref(null), calendarStartMonth = ref(new Date(2026, 5, 1));
@@ -170,14 +222,34 @@ function resetCalendar() { calendarStartMonth.value = new Date(2026, 5, 1); }
 function toggleDatePicker() { dateOpen.value = !dateOpen.value; openSelectKey.value = ""; }
 function clearDate() { selectedStartDate.value = null; selectedEndDate.value = null; dateOpen.value = false; }
 const exportOpen = ref(false), settingsOpen = ref(false), historyOpen = ref(false), colorCoding = ref(true), moreId = ref(null), moreMenuStyle = ref({}), detailRecord = ref(null), pageSizeOpen = ref(false);
-const currentPage = ref(1), pageSize = ref(20), jumpPage = ref(11), toast = ref("");
+const currentPage = ref(1), pageSize = ref(20), jumpPage = ref(1), toast = ref("");
 let toastTimer;
 function perform(message) { toast.value = message; window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => toast.value = "", 1800); exportOpen.value = false; moreId.value = null; }
 function batchAction(action) { if (!selected.value.length) return perform("请先选择问诊记录"); perform(`${action}：已选择 ${selected.value.length} 条`); }
-function toggleMore(id, event) { if (moreId.value === id) { moreId.value = null; return; } const cell = event.currentTarget.closest("td"); const button = event.currentTarget.getBoundingClientRect(); const anchor = cell?.getBoundingClientRect() || button; moreMenuStyle.value = { left: `${Math.round(button.left - 16)}px`, top: `${Math.round(anchor.top + 48)}px` }; moreId.value = id; }
+function toggleMore(id, event) { pageSizeOpen.value = false; exportOpen.value = false; openSelectKey.value = ""; dateOpen.value = false; if (moreId.value === id) { moreId.value = null; return; } const cell = event.currentTarget.closest("td"); const button = event.currentTarget.getBoundingClientRect(); const anchor = cell?.getBoundingClientRect() || button; moreMenuStyle.value = { left: `${Math.round(button.left - 16)}px`, top: `${Math.round(anchor.top + 48)}px` }; moreId.value = id; }
 function viewRecord(record) { detailRecord.value = record; moreId.value = null; }
-function jumpToPage() { currentPage.value = Math.max(1, Math.min(20, Number(jumpPage.value) || 1)); }
-function changePageSize(size) { pageSize.value = size; pageSizeOpen.value = false; currentPage.value = 1; }
+const visiblePageItems = computed(() => {
+  const total = totalPages.value;
+  const current = currentPage.value;
+  const pages = [];
+  if (total <= 7) {
+    for (let page = 1; page <= total; page += 1) pages.push(page);
+  } else if (current <= 4) {
+    pages.push(1, 2, 3, 4, 5, "ellipsis-right", total);
+  } else if (current >= total - 3) {
+    pages.push(1, "ellipsis-left", total - 4, total - 3, total - 2, total - 1, total);
+  } else {
+    pages.push(1, "ellipsis-left", current - 1, current, current + 1, "ellipsis-right", total);
+  }
+  return pages.map((item) => typeof item === "number" ? { key: "page-" + item, type: "page", page: item } : { key: item, type: "ellipsis" });
+});
+function changePage(page) { currentPage.value = Math.min(totalPages.value, Math.max(1, page)); jumpPage.value = currentPage.value; closeMoreMenu(); }
+function jumpToPage() { changePage(Number(jumpPage.value) || 1); }
+function togglePageSize() { pageSizeOpen.value = !pageSizeOpen.value; moreId.value = null; exportOpen.value = false; openSelectKey.value = ""; dateOpen.value = false; }
+function changePageSize(size) { pageSize.value = size; pageSizeOpen.value = false; selected.value = []; changePage(1); }
+watch(totalPages, (total) => {
+  if (currentPage.value > total) changePage(total);
+});
 function closeMoreMenu() { moreId.value = null; }
 function closePopovers() { openSelectKey.value = ""; dateOpen.value = false; exportOpen.value = false; closeMoreMenu(); pageSizeOpen.value = false; }
 onMounted(() => { document.addEventListener("click", closePopovers); window.addEventListener("scroll", closeMoreMenu, true); window.addEventListener("resize", closeMoreMenu); });
@@ -211,14 +283,14 @@ onBeforeUnmount(() => { document.removeEventListener("click", closePopovers); wi
 button { font-family: inherit; }.primary, .secondary { height: 32px; padding: 0 16px; border-radius: 6px; font-size: 14px; cursor: pointer; transition: color .16s, border-color .16s, background .16s, box-shadow .16s; }
 .primary { border: 1px solid #006ef9; color: #fff; background: #2f82f6; }.primary:hover { border-color: #005fd9; background: #006ef9; box-shadow: 0 2px 7px rgba(0,110,249,.22); }.primary:active { background: #005bcc; box-shadow: none; }.secondary { border: 1px solid #d6dbe1; color: rgba(0, 0, 0, .65); background: #fff; }.secondary:hover { border-color: #9aa7b3; color: #006ef9; background: #f8fbff; }.secondary:active { background: #edf5ff; }.small { min-width: 60px; }
 .batch-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }.batch-actions { display: flex; gap: 16px; }.export { display: inline-flex; align-items: center; justify-content: center; width: 80px; padding: 0 10px; color: #006ef9; white-space: nowrap; }.wide { min-width: 172px; }.history { min-width: 108px; }.history span { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border-radius: 50%; color: #fff; font-size: 11px; background: #777; }.history:hover span { background: #006ef9; }.menu-wrap { position: relative; }.action-menu { position: absolute; z-index: 40; top: 36px; overflow: hidden; padding: 4px; border: 1px solid #e5e8eb; border-radius: 6px; background: #fff; box-shadow: 0 5px 12px rgba(0,0,0,.18); }.action-menu button { display: block; width: 100%; height: 32px; padding: 0 10px; border: 0; color: rgba(0,0,0,.9); text-align: left; background: #fff; transition: color .15s, background .15s; }.action-menu button:hover { color: #006ef9; background: #edf5ff; }.action-menu button.danger:hover { color: #d54941; background: #fff1f0; }.export-menu { left: 0; width: 142px; }
-.table-card { height: 502px; margin-top: 24px; }.table-scroll { overflow-x: auto; }.table-scroll table { width: 100%; min-width: 1368px; border-collapse: collapse; table-layout: fixed; }.col-check{width:38px}.col-no{width:102px}.col-patient{width:88px}.col-age{width:88px}.col-doctor{width:80px}.col-clerk{width:50px}.col-type{width:100px}.col-status{width:100px}.col-time{width:100px}.col-payment{width:80px}.col-audit{width:112px}.col-realname{width:80px}.col-operations{width:274px}
+.table-card { height: 502px; margin-top: 24px; }.table-scroll { height: 413px; overflow: scroll; scrollbar-gutter: stable; }.table-scroll::-webkit-scrollbar,.select-menu::-webkit-scrollbar { width: 8px; height: 8px; }.table-scroll::-webkit-scrollbar-track,.select-menu::-webkit-scrollbar-track { border-radius: 4px; background: #f2f4f6; }.table-scroll::-webkit-scrollbar-thumb,.select-menu::-webkit-scrollbar-thumb { border: 2px solid #f2f4f6; border-radius: 4px; background: #b8c2cc; }.table-scroll::-webkit-scrollbar-thumb:hover,.select-menu::-webkit-scrollbar-thumb:hover { background: #8b98a5; }.table-scroll table { width: 100%; min-width: 1368px; border-collapse: collapse; table-layout: fixed; }.col-check{width:38px}.col-no{width:102px}.col-patient{width:88px}.col-age{width:88px}.col-doctor{width:80px}.col-clerk{width:50px}.col-type{width:100px}.col-status{width:100px}.col-time{width:100px}.col-payment{width:80px}.col-audit{width:112px}.col-realname{width:80px}.col-operations{width:274px}
 th, td { height: 60px; padding: 0 10px; border-bottom: 1px solid #f0f1f2; font-weight: 400; text-align: left; white-space: nowrap; }
-thead th { height: 52px; border-color: #e5e8eb; }.check { text-align: center; }.check input { appearance: none; width: 16px; height: 16px; margin: 0; border: 1px solid #d8dee5; border-radius: 4px; background-color: #fff; background-position: center; background-repeat: no-repeat; cursor: pointer; }.check input:hover { border-color: #006ef9; }.check input:checked { border-color: #006ef9; background-color: #006ef9; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.2 6.1 4.7 8.5 9.8 3.4' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }.check input:indeterminate { border-color: #006ef9; background-color: #006ef9; background-image: linear-gradient(#fff,#fff); background-size: 8px 1.5px; }
-tbody tr { transition: background .15s; }tbody tr:hover td { background: #f7faff; }.operations-head, .operations { border-left: 4px solid #e5e8eb; }.operation-actions { display: flex; align-items: center; gap: 32px; height: 60px; }.operations button { display: inline-flex; align-items: center; padding: 0; border: 0; color: #006ef9; font-size: 14px; background: none; cursor: pointer; transition: color .15s; }.operations button:hover { color: #338bfa; }.operations button:active { color: #005ed4; }.more-wrap { display: flex; align-items: center; justify-content: center; width: 80px; height: 60px; margin-left: -16px; }.more-wrap > button { justify-content: center; width: 80px; height: 60px; gap: 10px; }.more-wrap > button .chevron { margin-left: 0; }.more-menu--floating { position: fixed; z-index: 1000; top: auto; right: auto; display: flex; flex-direction: column; width: 80px; padding: 0; overflow: hidden; border: 0; border-radius: 8px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.25)); }.more-menu--floating button { display: flex; align-items: center; width: 80px; height: 34px; padding: 0 12px; border: 0; border-bottom: 1px solid #e7e7e7; color: rgba(0,0,0,.8); font-size: 14px; text-align: left; background: #fff; }.more-menu--floating button:last-child { border-bottom: 0; }.more-menu--floating button:hover { color: #338bfa; background: #f8f8f9; }.more-menu--floating button.danger:hover { color: #d54941; background: #fff1f0; }
+thead th { position: sticky; top: 0; z-index: 3; height: 52px; border-color: #e5e8eb; background: #fff; }.check { text-align: center; }.check input { appearance: none; width: 16px; height: 16px; margin: 0; border: 1px solid #d8dee5; border-radius: 4px; background-color: #fff; background-position: center; background-repeat: no-repeat; cursor: pointer; }.check input:hover { border-color: #006ef9; }.check input:checked { border-color: #006ef9; background-color: #006ef9; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.2 6.1 4.7 8.5 9.8 3.4' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }.check input:indeterminate { border-color: #006ef9; background-color: #006ef9; background-image: linear-gradient(#fff,#fff); background-size: 8px 1.5px; }
+tbody tr { transition: background .15s; }tbody tr:hover td { background: #f7faff; }.operations-head, .operations { border-left: 4px solid #e5e8eb; }.operations-head { z-index: 4; }.operation-actions { display: flex; align-items: center; gap: 0; height: 60px; }.operation-actions > button { justify-content: center; width: 60px; height: 60px; padding: 0 8px; border-bottom: 1px solid #e5e8eb; }.operations button { display: inline-flex; align-items: center; border: 0; color: #006ef9; font-size: 14px; background: #fff; cursor: pointer; transition: color .15s, background .15s; }.operations button:hover { color: #338bfa; background: #f8f8f9; }.operations button:active { color: #005ed4; background: #f8f8f9; }.more-wrap { display: flex; align-items: center; justify-content: center; width: 80px; height: 60px; }.more-wrap > button { justify-content: center; width: 80px; height: 60px; gap: 10px; border-bottom: 1px solid #e5e8eb; }.more-wrap > button .chevron { margin-left: 0; }.more-menu--floating { position: fixed; z-index: 1000; top: auto; right: auto; display: flex; flex-direction: column; width: 80px; padding: 0; overflow: hidden; border: 0; border-radius: 8px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.25)); }.more-menu--floating button { display: flex; align-items: center; width: 80px; height: 34px; padding: 0 12px; border: 0; border-bottom: 1px solid #e7e7e7; color: rgba(0,0,0,.8); font-size: 14px; text-align: left; background: #fff; }.more-menu--floating button:last-child { border-bottom: 0; }.more-menu--floating button:hover { color: #338bfa; background: #f8f8f9; }.more-menu--floating button.danger:hover { color: #d54941; background: #fff1f0; }
 .type-tag { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 3px; }.type-tag.text { color: #009080; background: #d1f0ec; }.type-tag.video { color: #5c82e6; background: #edf2ff; }
 .consult-status { display: flex; align-items: center; gap: 8px; }.consult-status i { width: 12px; height: 12px; border-radius: 50%; }.consult-status .green { background: #2dcc70; }.consult-status .gray { background: #9aa7ba; }
 .audit-tag { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 3px; }.audit-tag i { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; color: #fff; font-size: 11px; font-style: normal; }.audit-tag.done { color: #009080; background: #e3f9e9; }.audit-tag.done i { background: #009d8c; }.audit-tag.unsigned { color: #e87a1b; background: #fff7ed; }.audit-tag.unsigned i { background: #ed7417; }.audit-tag.void { color: #555; background: #f3f4f5; }.audit-tag.void i { background: #9aa7ba; }
-.pagination { display: flex; align-items: center; justify-content: flex-end; gap: 8px; height: 89px; padding: 0 24px; color: rgba(0, 0, 0, .65); }.pagination button { height: 32px; border: 1px solid #d9dee4; border-radius: 3px; color: rgba(0, 0, 0, .65); background: #fff; transition: color .15s,border-color .15s,background .15s; }.pagination button:hover:not(:disabled) { border-color: #006ef9; color: #006ef9; background: #f7faff; }.page-size-wrap { position: relative; margin-right: 16px; }.page-size { display: flex; align-items: center; justify-content: space-between; width: 112px; padding: 0 12px; }.page-size-menu { top: auto; right: 0; bottom: 36px; width: 112px; }.page, .arrow { width: 32px; }.page.active,.page.active:hover { border-color: #006ef9; color: #fff; background: #006ef9; }.arrow { border-color: transparent !important; font-size: 22px; }.arrow:disabled { color: #c4c9cf; cursor: not-allowed; }.ellipsis { width: 32px; text-align: center; }.jump { display: flex; align-items: center; height: 32px; margin-left: 16px; padding: 0 8px; background: #f5f5f5; }.jump input { width: 54px; height: 24px; margin: 0 8px; border: 1px solid #d8dde3; border-radius: 3px; text-align: center; background: #fff; }.jump input:hover { border-color: #9aa7b3; }.jump input:focus { border-color: #006ef9; outline: none; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }
+.pagination { display: flex; align-items: center; justify-content: flex-end; gap: 8px; height: 89px; padding: 0 24px; color: rgba(0, 0, 0, .65); }.pagination button { height: 32px; border: 1px solid #d9dee4; border-radius: 3px; color: rgba(0, 0, 0, .65); background: #fff; transition: color .15s,border-color .15s,background .15s; }.pagination button:hover:not(:disabled) { border-color: #006ef9; color: #006ef9; background: #f7faff; }.page-size-wrap { position: relative; margin-right: 16px; }.page-size { display: flex; align-items: center; justify-content: space-between; width: 112px; padding: 0 12px; }.page-size-menu { top: auto; right: 0; bottom: 36px; width: 112px; padding: 0; overflow: hidden; border: 0; border-radius: 8px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.25)); }.page-size-menu button { height: 34px; padding: 0 12px; border: 0; border-bottom: 1px solid #e7e7e7; color: rgba(0,0,0,.8); background: #fff; }.page-size-menu button:last-child { border-bottom: 0; }.page-size-menu button:hover { color: #338bfa; background: #f8f8f9; }.page-size-menu button.selected,.page-size-menu button.selected:hover { color: #005ed4; background: #f8f8f9; }.page, .arrow { width: 32px; }.page.active,.page.active:hover { border-color: #006ef9; color: #fff; background: #006ef9; }.arrow { border-color: transparent !important; font-size: 22px; }.arrow:disabled { color: #c4c9cf; cursor: not-allowed; }.ellipsis { width: 32px; text-align: center; }.jump { display: flex; align-items: center; height: 32px; margin-left: 16px; padding: 0 8px; background: #f5f5f5; }.jump input { width: 54px; height: 24px; margin: 0 8px; border: 1px solid #d8dde3; border-radius: 3px; text-align: center; background: #fff; }.jump input:hover { border-color: #9aa7b3; }.jump input:focus { border-color: #006ef9; outline: none; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }
 .modal-mask { position: fixed; z-index: 100; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.35); }.settings-dialog, .record-dialog { width: 360px; padding: 20px; border-radius: 10px; background: #fff; box-shadow: 0 16px 48px rgba(0,0,0,.22); }.settings-dialog { width: 240px; }.settings-dialog header, .record-dialog header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; font-size: 18px; }.settings-dialog header button, .record-dialog header button { border: 0; font-size: 22px; background: transparent; }.settings-dialog label { display: flex; align-items: center; justify-content: space-between; }.switch { position: relative; width: 36px; height: 20px; padding: 0; border: 0; border-radius: 10px; background: #d8dde3; }.switch i { position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .2s; }.switch.on { background: #1684ff; }.switch.on i { transform: translateX(16px); }.record-dialog p { margin: 0 0 20px; color: rgba(0,0,0,.65); }.record-dialog dl { display: grid; grid-template-columns: 90px 1fr; gap: 12px; margin: 0; }.record-dialog dt { color: rgba(0,0,0,.45); }.record-dialog dd { margin: 0; }.records-toast { position: fixed; z-index: 150; top: 82px; left: 50%; padding: 10px 20px; border-radius: 6px; color: #fff; background: rgba(0,0,0,.78); transform: translateX(-50%); box-shadow: 0 8px 24px rgba(0,0,0,.2); }.toast-enter-active,.toast-leave-active { transition: opacity .2s, transform .2s; }.toast-enter-from,.toast-leave-to { opacity: 0; transform: translate(-50%,-8px); }
 @media (max-width: 1300px) { .records-nav { gap: 10px; padding-inline: 40px; }.records-content { padding: 20px; }.filter-grid { grid-template-columns: 500px 230px 230px 230px; gap-inline: 16px; } }
 </style>
