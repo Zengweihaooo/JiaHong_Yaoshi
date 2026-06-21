@@ -20,16 +20,14 @@
         <div class="filter-grid">
           <label class="field field-date">
             <span>问诊类型</span>
-            <button class="date-input" :class="{ active: dateOpen, filled: selectedStartDate }" type="button" @click.stop="toggleDatePicker">
-              <span>{{ dateStart || '开始日期时间' }}</span><i>-</i><span>{{ dateEnd || '结束日期时间' }}</span><b class="calendar">▣</b>
-            </button>
-            <div v-if="dateOpen" class="date-popover">
-              <section v-for="calendarItem in calendars" :key="calendarItem.key" class="date-calendar">
-                <header><button type="button">{{ calendarItem.monthLabel }}</button><button type="button">{{ calendarItem.year }}</button><span><button type="button" @click.stop="shiftCalendar(-1)">‹</button><button type="button" @click.stop="resetCalendar">○</button><button type="button" @click.stop="shiftCalendar(1)">›</button></span></header>
-                <div class="date-week"><span v-for="day in weekLabels" :key="day">{{ day }}</span></div>
-                <div class="date-days"><button v-for="cell in calendarItem.days" :key="cell.key" :class="dateCellClass(cell)" type="button" @click.stop="selectDate(cell)">{{ cell.day }}</button></div>
-              </section>
-            </div>
+            <t-date-range-picker
+              v-model="dateRange"
+              class="records-date-range"
+              clearable
+              format="YYYY-MM-DD"
+              :placeholder="['开始日期时间', '结束日期时间']"
+              @click.stop
+            />
           </label>
           <FilterSelect label="问诊类型" v-model="filters.type" />
           <FilterSelect label="问诊状态" v-model="filters.status" />
@@ -225,28 +223,14 @@ function toggleAll(event) {
 }
 
 const openSelectKey = ref("");
-const dateOpen = ref(false), selectedStartDate = ref(null), selectedEndDate = ref(null), calendarStartMonth = ref(new Date(2026, 5, 1));
-const weekLabels = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const dateStart = computed(() => selectedStartDate.value ? formatDate(selectedStartDate.value) : "");
-const dateEnd = computed(() => selectedEndDate.value ? formatDate(selectedEndDate.value) : "");
-const calendars = computed(() => [calendarStartMonth.value, addMonths(calendarStartMonth.value, 1)].map((month) => ({ key: `${month.getFullYear()}-${month.getMonth()}`, year: month.getFullYear(), monthLabel: monthLabels[month.getMonth()], days: buildCalendarDays(month) })));
-function addMonths(date, amount) { return new Date(date.getFullYear(), date.getMonth() + amount, 1); }
-function addDays(date, amount) { return new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount); }
-function formatDate(date) { return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`; }
-function buildCalendarDays(month) { const first = new Date(month.getFullYear(), month.getMonth(), 1); const start = addDays(first, -first.getDay()); return Array.from({ length: 42 }, (_, index) => { const date = addDays(start,index); return { key: formatDate(date), day: date.getDate(), date, time: date.getTime(), current: date.getMonth() === month.getMonth() }; }); }
-function selectDate(cell) { const date = new Date(cell.date); if (!selectedStartDate.value || selectedEndDate.value) { selectedStartDate.value = date; selectedEndDate.value = null; } else if (date < selectedStartDate.value) { selectedEndDate.value = selectedStartDate.value; selectedStartDate.value = date; } else { selectedEndDate.value = date; dateOpen.value = false; } }
-function dateCellClass(cell) { const start = selectedStartDate.value?.getTime(); const end = selectedEndDate.value?.getTime(); return { muted: !cell.current, picked: cell.key === dateStart.value || cell.key === dateEnd.value, range: start && end && cell.time > start && cell.time < end }; }
-function shiftCalendar(amount) { calendarStartMonth.value = addMonths(calendarStartMonth.value, amount); }
-function resetCalendar() { calendarStartMonth.value = new Date(2026, 5, 1); }
-function toggleDatePicker() { dateOpen.value = !dateOpen.value; openSelectKey.value = ""; }
-function clearDate() { selectedStartDate.value = null; selectedEndDate.value = null; dateOpen.value = false; }
+const dateRange = ref([]);
+function clearDate() { dateRange.value = []; }
 const exportOpen = ref(false), settingsOpen = ref(false), historyOpen = ref(false), historyTipOpen = ref(false), colorCoding = ref(true), moreId = ref(null), moreMenuStyle = ref({}), detailRecord = ref(null), pageSizeOpen = ref(false);
 const currentPage = ref(1), pageSize = ref(20), jumpPage = ref(1), toast = ref("");
 let toastTimer;
 function perform(message) { toast.value = message; window.clearTimeout(toastTimer); toastTimer = window.setTimeout(() => toast.value = "", 1800); exportOpen.value = false; moreId.value = null; }
 function batchAction(action) { if (!selected.value.length) return perform("请先选择问诊记录"); perform(`${action}：已选择 ${selected.value.length} 条`); }
-function toggleMore(id, event) { pageSizeOpen.value = false; exportOpen.value = false; historyTipOpen.value = false; openSelectKey.value = ""; dateOpen.value = false; if (moreId.value === id) { moreId.value = null; return; } const cell = event.currentTarget.closest("td"); const button = event.currentTarget.getBoundingClientRect(); const anchor = cell?.getBoundingClientRect() || button; moreMenuStyle.value = { left: `${Math.round(button.left - 16)}px`, top: `${Math.round(anchor.top + 48)}px` }; moreId.value = id; }
+function toggleMore(id, event) { pageSizeOpen.value = false; exportOpen.value = false; historyTipOpen.value = false; openSelectKey.value = ""; if (moreId.value === id) { moreId.value = null; return; } const cell = event.currentTarget.closest("td"); const button = event.currentTarget.getBoundingClientRect(); const anchor = cell?.getBoundingClientRect() || button; moreMenuStyle.value = { left: `${Math.round(button.left - 16)}px`, top: `${Math.round(anchor.top + 48)}px` }; moreId.value = id; }
 function viewRecord(record) { detailRecord.value = record; moreId.value = null; }
 const visiblePageItems = computed(() => {
   const total = totalPages.value;
@@ -265,14 +249,14 @@ const visiblePageItems = computed(() => {
 });
 function changePage(page) { currentPage.value = Math.min(totalPages.value, Math.max(1, page)); jumpPage.value = currentPage.value; closeMoreMenu(); }
 function jumpToPage() { changePage(Number(jumpPage.value) || 1); }
-function toggleHistoryTip() { historyTipOpen.value = !historyTipOpen.value; exportOpen.value = false; moreId.value = null; pageSizeOpen.value = false; openSelectKey.value = ""; dateOpen.value = false; }
-function togglePageSize() { pageSizeOpen.value = !pageSizeOpen.value; historyTipOpen.value = false; moreId.value = null; exportOpen.value = false; openSelectKey.value = ""; dateOpen.value = false; }
+function toggleHistoryTip() { historyTipOpen.value = !historyTipOpen.value; exportOpen.value = false; moreId.value = null; pageSizeOpen.value = false; openSelectKey.value = ""; }
+function togglePageSize() { pageSizeOpen.value = !pageSizeOpen.value; historyTipOpen.value = false; moreId.value = null; exportOpen.value = false; openSelectKey.value = ""; }
 function changePageSize(size) { pageSize.value = size; pageSizeOpen.value = false; selected.value = []; changePage(1); }
 watch(totalPages, (total) => {
   if (currentPage.value > total) changePage(total);
 });
 function closeMoreMenu() { moreId.value = null; }
-function closePopovers() { openSelectKey.value = ""; dateOpen.value = false; exportOpen.value = false; historyTipOpen.value = false; closeMoreMenu(); pageSizeOpen.value = false; }
+function closePopovers() { openSelectKey.value = ""; exportOpen.value = false; historyTipOpen.value = false; closeMoreMenu(); pageSizeOpen.value = false; }
 onMounted(() => { document.addEventListener("click", closePopovers); window.addEventListener("scroll", closeMoreMenu, true); window.addEventListener("resize", closeMoreMenu); });
 onBeforeUnmount(() => { document.removeEventListener("click", closePopovers); window.removeEventListener("scroll", closeMoreMenu, true); window.removeEventListener("resize", closeMoreMenu); });
 </script>
@@ -294,12 +278,18 @@ onBeforeUnmount(() => { document.removeEventListener("click", closePopovers); wi
 .filter-grid { display: grid; width: 100%; grid-template-columns: minmax(440px, 1fr) repeat(3, minmax(200px, 250px)); grid-template-rows: 32px 32px 32px; gap: 16px 24px; align-items: center; }
 .field { position: relative; display: flex; align-items: center; gap: 12px; height: 32px; min-width: 0; }
 .field > span { flex: 0 0 68px; width: 68px; white-space: nowrap; }
-.field input, .date-input { flex: 1; min-width: 0; height: 32px; padding: 0 12px; border: 1px solid #e5e8eb; border-radius: 6px; outline: 0; color: rgba(0, 0, 0, .9); font: inherit; background: #fff; }
+.field input { flex: 1; min-width: 0; height: 32px; padding: 0 12px; border: 1px solid #e5e8eb; border-radius: 6px; outline: 0; color: rgba(0, 0, 0, .9); font: inherit; background: #fff; }
 .field input::placeholder { color: rgba(0, 0, 0, .4); }.field input { transition: border-color .16s, box-shadow .16s, background .16s; }.field input:hover { border-color: #b8c2cc; background: #fafcff; }.field input:focus { border-color: #006ef9; background: #fff; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }
 .custom-select { position: relative; z-index: 2; flex: 1; min-width: 0; }.custom-select:has(> button.open) { z-index: 50; }.custom-select > button { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 32px; padding: 0 12px; border: 1px solid #e5e8eb; border-radius: 6px; color: rgba(0,0,0,.9); font-size: 14px; text-align: left; background: #fff; transition: border-color .16s, box-shadow .16s, background .16s; }.custom-select > button:hover { border-color: #b8c2cc; background: #fafcff; }.custom-select > button.open { border-color: #006ef9; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }.chevron { display: inline-block; flex: 0 0 auto; width: 8px; height: 8px; margin: 0 1px 3px 10px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; vertical-align: middle; transform: rotate(45deg); transform-origin: 60% 60%; transition: transform .16s, margin .16s; }.chevron.up { margin-top: 4px; margin-bottom: 0; transform: rotate(225deg); }.select-menu { position: absolute; z-index: 100; top: 36px; right: 0; left: 0; max-height: 184px; overflow-y: scroll; scrollbar-gutter: stable; padding: 4px 2px 4px 4px; border: 1px solid #e5e8eb; border-radius: 6px; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.12); }.select-menu::-webkit-scrollbar { width: 8px; }.select-menu::-webkit-scrollbar-track { margin: 4px 0; border-radius: 4px; background: #f2f4f6; }.select-menu::-webkit-scrollbar-thumb { border: 2px solid #f2f4f6; border-radius: 4px; background: #b8c2cc; }.select-menu::-webkit-scrollbar-thumb:hover { background: #8b98a5; }.select-menu button { display: block; width: 100%; height: 36px; padding: 0 12px; border: 0; border-radius: 3px; color: rgba(0,0,0,.9); text-align: left; background: #fff; transition: color .15s, background .15s; }.select-menu button:hover { color: #006ef9; background: #f3f7fc; }.select-menu button.selected { color: #006ef9; background: #eaf3ff; }
 .field-date { grid-column: 1; }
-.date-input { display: flex; align-items: center; gap: 8px; color: rgba(0, 0, 0, .4); text-align: left; transition: border-color .16s, box-shadow .16s; }.date-input:hover { border-color: #b8c2cc; }.date-input.active { border-color: #006ef9; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }.date-input.filled { color: rgba(0,0,0,.9); }.date-popover { position: absolute; z-index: 200; top: 38px; left: 68px; display: flex; width: 563px; padding: 16px; border: 1px solid #e5e8eb; border-radius: 8px; background: #fff; box-shadow: 0 12px 32px rgba(0,0,0,.14); }.date-calendar { flex: 1; min-width: 0; }.date-calendar + .date-calendar { margin-left: 16px; padding-left: 16px; border-left: 1px solid #edf0f2; }.date-calendar header { display: flex; align-items: center; height: 30px; }.date-calendar header > button { padding: 0 5px; border: 0; font-weight: 600; background: none; }.date-calendar header > span { display: flex; margin-left: auto; }.date-calendar header > span button { width: 25px; height: 25px; border: 0; border-radius: 3px; background: none; }.date-calendar header > span button:hover { color: #006ef9; background: #edf5ff; }.date-week,.date-days { display: grid; grid-template-columns: repeat(7,1fr); }.date-week span { height: 28px; color: rgba(0,0,0,.4); font-size: 12px; line-height: 28px; text-align: center; }.date-days button { height: 27px; border: 0; border-radius: 3px; color: rgba(0,0,0,.9); background: transparent; }.date-days button:hover { color: #006ef9; background: #edf5ff; }.date-days button.muted { color: rgba(0,0,0,.25); }.date-days button.range { border-radius: 0; color: #006ef9; background: #edf5ff; }.date-days button.picked { color: #fff; background: #006ef9; }
-.date-input span { flex: 1; }.date-input i { font-style: normal; }.calendar { color: #999; font-size: 15px; }
+.records-date-range { flex: 1; min-width: 0; width: 100%; height: 32px; }
+.records-date-range.t-date-range-picker { display: flex; }
+.records-date-range .t-range-input { width: 100%; height: 32px; border-color: #e5e8eb; border-radius: 6px; box-shadow: none; transition: border-color .16s, box-shadow .16s, background .16s; }
+.records-date-range .t-range-input:hover { border-color: #b8c2cc; background: #fafcff; }
+.records-date-range .t-is-focused { border-color: #006ef9; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }
+.records-date-range .t-range-input__inner { font: inherit; font-size: 14px; }
+.records-date-range .t-range-input__inner::placeholder { color: rgba(0, 0, 0, .4); }
+.t-date-picker__panel-container { z-index: 3000; }
 .filter-grid > :nth-child(2) { grid-column: 2; grid-row: 1; }.filter-grid > :nth-child(3) { grid-column: 3; grid-row: 1; }.filter-grid > :nth-child(4) { grid-column: 4; grid-row: 1; }
 .filter-grid > :nth-child(5) { grid-column: 1; grid-row: 2; width: calc((100% - 24px) / 2); }.filter-grid > :nth-child(6) { grid-column: 1; grid-row: 2; width: calc((100% - 24px) / 2); margin-left: calc((100% + 24px) / 2); }
 .filter-grid > :nth-child(7) { grid-column: 2; grid-row: 2; }.filter-grid > :nth-child(8) { grid-column: 3; grid-row: 2; }.filter-grid > :nth-child(9) { grid-column: 4; grid-row: 2; }
