@@ -946,6 +946,7 @@ onBeforeUnmount(() => {
 .quick-consult-page {
   min-width: 1440px;
   min-height: 900px;
+  padding-bottom: 72px;
   background: #f4f5f6;
 }
 
@@ -2193,15 +2194,21 @@ onBeforeUnmount(() => {
 }
 
 .quick-consult-card__footer {
-  position: absolute;
-  right: 48px;
-  bottom: 32px;
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1200;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 16px;
-  min-height: 40px;
-  padding: 0;
+  min-height: 64px;
+  padding: 12px max(48px, calc((100vw - 1392px) / 2 + 48px)) 12px 48px;
+  border-top: 1px solid #e5e8eb;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 -6px 18px rgba(16, 42, 67, 0.08);
+  box-sizing: border-box;
 }
 
 .consent-check {
@@ -2306,12 +2313,12 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 20px;
   background: rgba(0, 0, 0, 0.48);
 }
 
 .consent-confirm-dialog {
-  width: min(720px, calc(100vw - 48px));
+  width: min(560px, calc(100vw - 40px));
   border-radius: var(--jh-radius-md);
   background: var(--jh-color-bg-surface);
   box-shadow: 0 20px 48px rgba(19, 29, 43, 0.2);
@@ -2321,15 +2328,15 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 34px 36px 20px;
+  padding: 24px 28px 14px;
 }
 
 .consent-confirm-dialog__header h2 {
   margin: 0;
   color: var(--jh-color-text);
-  font-size: 26px;
+  font-size: 21px;
   font-weight: 400;
-  line-height: 36px;
+  line-height: 30px;
 }
 
 .consent-confirm-dialog__close {
@@ -2344,10 +2351,10 @@ onBeforeUnmount(() => {
 }
 
 .consent-confirm-dialog__body {
-  padding: 28px 36px 40px;
+  padding: 18px 28px 28px;
   color: var(--jh-color-text);
-  font-size: 22px;
-  line-height: 34px;
+  font-size: 18px;
+  line-height: 28px;
 }
 
 .consent-confirm-dialog__body a {
@@ -2358,14 +2365,14 @@ onBeforeUnmount(() => {
 .consent-confirm-dialog__footer {
   display: flex;
   justify-content: flex-end;
-  gap: 18px;
-  padding: 0 36px 36px;
+  gap: 14px;
+  padding: 0 28px 28px;
 }
 
 .consent-confirm-dialog__footer :deep(.jh-btn) {
-  width: 96px;
-  height: 46px;
-  font-size: 20px;
+  width: 88px;
+  height: 40px;
+  font-size: 16px;
 }
 
 .submit-confirm-overlay {
@@ -2375,7 +2382,7 @@ onBeforeUnmount(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: 20px;
   background: rgba(122, 136, 152, 0.3);
 }
 
@@ -2383,7 +2390,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  width: min(640px, calc(100vw - 48px));
+  width: min(560px, calc(100vw - 40px));
   border-radius: 8px;
   background: #fff;
   overflow: hidden;
@@ -2395,8 +2402,8 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: space-between;
   width: 100%;
-  height: 48px;
-  padding: 12px 16px 12.67px;
+  height: 44px;
+  padding: 10px 16px;
   border-bottom: 0.67px solid rgba(229, 231, 235, 0.5);
   border-radius: 8px 8px 0 0;
   background: #f2f3f4;
@@ -2437,8 +2444,8 @@ onBeforeUnmount(() => {
 
 .submit-confirm-dialog__warning {
   width: 100%;
-  min-height: 36px;
-  padding: 6px 89px 6px 18px;
+  min-height: 34px;
+  padding: 5px 60px 5px 18px;
   color: #fe8125;
   font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
   font-size: 14px;
@@ -2453,7 +2460,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  padding: 12px 24px 0;
+  padding: 10px 20px 0;
   background: #fff;
   box-sizing: border-box;
 }
@@ -2496,7 +2503,7 @@ onBeforeUnmount(() => {
 
 .submit-confirm-group {
   width: 100%;
-  padding-left: 28px;
+  padding-left: 22px;
   box-sizing: border-box;
 }
 
@@ -2505,8 +2512,8 @@ onBeforeUnmount(() => {
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  min-height: 92px;
-  padding: 11px 15px;
+  min-height: 82px;
+  padding: 9px 13px;
   border-radius: 4px;
   background: #f5f9ff;
   overflow: hidden;
@@ -2558,8 +2565,8 @@ onBeforeUnmount(() => {
 }
 
 .submit-confirm-empty {
-  margin-left: 28px;
-  padding: 24px 15px;
+  margin-left: 22px;
+  padding: 20px 13px;
   border-radius: 4px;
   color: var(--jh-color-muted);
   font-size: 14px;
@@ -2606,22 +2613,22 @@ onBeforeUnmount(() => {
   align-items: center;
   justify-content: flex-end;
   width: 100%;
-  height: 72px;
-  padding: 16px 24px 16px 10px;
+  height: 60px;
+  padding: 12px 20px 12px 10px;
   background: #fff;
   box-sizing: border-box;
 }
 
 .submit-confirm-dialog__footer :deep(.jh-btn) {
-  width: 80px;
-  min-width: 80px;
-  max-width: 80px;
-  height: 40px;
+  width: 76px;
+  min-width: 76px;
+  max-width: 76px;
+  height: 36px;
   border-radius: 8px;
   border-color: transparent;
   background: linear-gradient(270deg, #3b92ff 0%, #006ef9 100%);
   font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 24px;
 }
