@@ -807,7 +807,8 @@ onBeforeUnmount(() => {
   flex: 0 0 auto;
   width: 384px;
   height: 126px;
-  margin: 0;
+  /* 与医生消息正文左侧对齐：40px 头像 + 12px 消息间距。 */
+  margin: 0 0 0 52px;
   padding: 18px 32px 22px;
   border: 1px solid #b2d4fd;
   border-radius: 14px;
