@@ -945,8 +945,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .quick-consult-page {
   min-width: 1440px;
-  min-height: 900px;
-  padding-bottom: 72px;
+  min-height: 100vh;
   background: #f4f5f6;
 }
 
@@ -1006,7 +1005,7 @@ onBeforeUnmount(() => {
 .quick-consult-card {
   position: relative;
   width: 1392px;
-  height: 796px;
+  height: min(740px, calc(100vh - 104px));
   border: 0;
   border-radius: 16px;
   background: #fff;
@@ -1069,8 +1068,11 @@ onBeforeUnmount(() => {
   display: grid;
   grid-template-columns: 696px 696px;
   gap: 0;
-  height: 740px;
-  min-height: 740px;
+  height: calc(100% - 56px);
+  min-height: 0;
+  padding-bottom: 72px;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .quick-consult-card__col {
@@ -2194,21 +2196,15 @@ onBeforeUnmount(() => {
 }
 
 .quick-consult-card__footer {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 1200;
+  position: absolute;
+  right: 48px;
+  bottom: 24px;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 16px;
-  min-height: 64px;
-  padding: 12px max(48px, calc((100vw - 1392px) / 2 + 48px)) 12px 48px;
-  border-top: 1px solid #e5e8eb;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 -6px 18px rgba(16, 42, 67, 0.08);
-  box-sizing: border-box;
+  min-height: 40px;
+  padding: 0;
 }
 
 .consent-check {
