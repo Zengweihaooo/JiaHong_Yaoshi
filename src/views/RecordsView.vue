@@ -4,6 +4,10 @@
       <div class="account-expire"><span class="speaker">●</span>您的账号将于 <em>2027-05-26</em> 到期，剩余 <em>350</em> 天（单体）</div>
       <div class="account-actions">
         <button class="service-btn" type="button">☁ 在线客服</button>
+        <div class="date-mode-switch" aria-label="日期选择器方案切换">
+          <button :class="{ active: datePickerMode === 'range' }" type="button" @click="datePickerMode = 'range'">方案一</button>
+          <button :class="{ active: datePickerMode === 'split' }" type="button" @click="datePickerMode = 'split'">方案二</button>
+        </div>
         <button class="bar-link" type="button"><i>▣</i> 下载 APP 问诊</button>
         <button class="bar-link" type="button">任务中心 <b class="chevron mini"></b></button>
         <button class="bar-link" type="button">大王测试药店01 <b class="chevron mini"></b></button>
@@ -20,14 +24,42 @@
         <div class="filter-grid">
           <label class="field field-date">
             <span>问诊类型</span>
-            <t-date-range-picker
-              v-model="dateRange"
-              class="records-date-range"
-              clearable
-              format="YYYY-MM-DD"
-              :placeholder="['开始日期时间', '结束日期时间']"
-              @click.stop
-            />
+            <div class="date-control-frame" :class="'mode-' + datePickerMode" @click.stop>
+              <t-date-range-picker
+                v-if="datePickerMode === 'range'"
+                v-model="dateRange"
+                class="records-date-range"
+                allow-input
+                borderless
+                clearable
+                format="YYYY-MM-DD"
+                :placeholder="['开始日期时间', '结束日期时间']"
+                :popup-props="rangeDatePopupProps"
+              />
+              <template v-else>
+                <t-date-picker
+                  v-model="dateStart"
+                  class="records-single-date"
+                  allow-input
+                  borderless
+                  clearable
+                  format="YYYY-MM-DD"
+                  placeholder="开始日期时间"
+                  :popup-props="singleDatePopupProps"
+                />
+                <i class="date-separator">-</i>
+                <t-date-picker
+                  v-model="dateEnd"
+                  class="records-single-date"
+                  allow-input
+                  borderless
+                  clearable
+                  format="YYYY-MM-DD"
+                  placeholder="结束日期时间"
+                  :popup-props="singleDatePopupProps"
+                />
+              </template>
+            </div>
           </label>
           <FilterSelect label="问诊类型" v-model="filters.type" />
           <FilterSelect label="问诊状态" v-model="filters.status" />
@@ -223,8 +255,25 @@ function toggleAll(event) {
 }
 
 const openSelectKey = ref("");
+const datePickerMode = ref("range");
 const dateRange = ref([]);
-function clearDate() { dateRange.value = []; }
+const dateStart = ref("");
+const dateEnd = ref("");
+function getDateFrameWidth(triggerElement) {
+  const frame = triggerElement?.closest?.(".date-control-frame") || triggerElement;
+  const width = Math.round(frame?.getBoundingClientRect?.().width || 360);
+  return { width: `${width}px`, minWidth: `${width}px` };
+}
+const rangeDatePopupProps = {
+  attach: "body",
+  overlayClassName: "records-date-popup records-date-popup--range",
+  overlayStyle: getDateFrameWidth
+};
+const singleDatePopupProps = {
+  attach: "body",
+  overlayClassName: "records-date-popup records-date-popup--single"
+};
+function clearDate() { dateRange.value = []; dateStart.value = ""; dateEnd.value = ""; }
 const exportOpen = ref(false), settingsOpen = ref(false), historyOpen = ref(false), historyTipOpen = ref(false), colorCoding = ref(true), moreId = ref(null), moreMenuStyle = ref({}), detailRecord = ref(null), pageSizeOpen = ref(false);
 const currentPage = ref(1), pageSize = ref(20), jumpPage = ref(1), toast = ref("");
 let toastTimer;
@@ -266,7 +315,7 @@ onBeforeUnmount(() => { document.removeEventListener("click", closePopovers); wi
 .records-page { min-width: 1200px; min-height: 100vh; color: rgba(0, 0, 0, .9); font-family: "Microsoft YaHei UI", "Microsoft YaHei", sans-serif; font-size: 14px; background: #f5f5f5; }
 .account-bar { display: flex; align-items: center; justify-content: space-between; height: 36px; padding: 0 28px; border-top: 1px solid #8c8c8c; border-bottom: 1px solid #dfe2e6; color: #666; font-size: 14px; background: #f6f7f9; }
 .account-expire { display: flex; align-items: center; gap: 4px; white-space: nowrap; }.account-expire .speaker { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-right: 6px; border-radius: 50%; color: #fff; font-size: 0; background: #1989ff; }.account-expire .speaker::before { color: #fff; font-size: 10px; content: "▸"; }.account-expire em { color: #ff4d4f; font-style: normal; }
-.account-actions { display: flex; align-items: center; gap: 16px; height: 100%; }.account-actions button { height: 28px; border: 0; color: #666; font-size: 14px; background: transparent; cursor: pointer; }.account-actions button:hover { color: #006ef9; }.service-btn { min-width: 156px; border-radius: 8px !important; color: #fff !important; font-weight: 600; background: #2f63f6 !important; }.service-btn:hover { background: #1f57ee !important; }.bar-link { display: inline-flex; align-items: center; gap: 6px; padding: 0; }.bar-link i { color: #bfc4cc; font-style: normal; }.chevron.mini { width: 7px; height: 7px; margin: 0 0 3px 3px; border-width: 1.5px; color: #666; }
+.account-actions { display: flex; align-items: center; gap: 16px; height: 100%; }.account-actions button { height: 28px; border: 0; color: #666; font-size: 14px; background: transparent; cursor: pointer; }.account-actions button:hover { color: #006ef9; }.service-btn { min-width: 156px; border-radius: 8px !important; color: #fff !important; font-weight: 600; background: #2f63f6 !important; }.service-btn:hover { background: #1f57ee !important; }.date-mode-switch { display: inline-flex; align-items: center; height: 24px; padding: 2px; border: 1px solid #d8dde5; border-radius: 6px; background: #fff; }.date-mode-switch button { height: 20px; min-width: 48px; padding: 0 8px; border-radius: 4px; color: rgba(0,0,0,.65); font-size: 12px; line-height: 20px; }.date-mode-switch button:hover { color: #006ef9; background: #f2f7ff; }.date-mode-switch button.active { color: #fff; background: #2f63f6; }.bar-link { display: inline-flex; align-items: center; gap: 6px; padding: 0; }.bar-link i { color: #bfc4cc; font-style: normal; }.chevron.mini { width: 7px; height: 7px; margin: 0 0 3px 3px; border-width: 1.5px; color: #666; }
 .records-nav { display: flex; align-items: flex-end; justify-content: center; gap: 23px; height: 64px; padding: 8px 116px 0; background: #fff; }
 .records-nav button { position: relative; width: 100px; height: 56px; padding: 0 0 17px; border: 0; color: rgba(0, 0, 0, .9); font: inherit; font-size: 16px; line-height: 24px; white-space: nowrap; background: transparent; cursor: pointer; }
 .records-nav button::after { position: absolute; bottom: 0; left: 18px; width: 64px; height: 4px; background: transparent; content: ""; }
@@ -275,21 +324,32 @@ onBeforeUnmount(() => { document.removeEventListener("click", closePopovers); wi
 .filter-card, .table-card { width: 100%; border-radius: 12px; background: #fff; }
 .filter-card { position: relative; z-index: 20; flex: 0 0 208px; height: 208px; padding: 16px 24px; overflow: visible; }
 .table-card { position: relative; z-index: 1; overflow: hidden; }
-.filter-grid { display: grid; width: 100%; grid-template-columns: minmax(440px, 1fr) repeat(3, minmax(200px, 250px)); grid-template-rows: 32px 32px 32px; gap: 16px 24px; align-items: center; }
+.filter-grid { display: grid; width: 100%; grid-template-columns: minmax(528px, 1fr) repeat(3, minmax(200px, 250px)); grid-template-rows: 32px 32px 32px; gap: 16px 24px; align-items: center; }
 .field { position: relative; display: flex; align-items: center; gap: 12px; height: 32px; min-width: 0; }
 .field > span { flex: 0 0 68px; width: 68px; white-space: nowrap; }
 .field input { flex: 1; min-width: 0; height: 32px; padding: 0 12px; border: 1px solid #e5e8eb; border-radius: 6px; outline: 0; color: rgba(0, 0, 0, .9); font: inherit; background: #fff; }
 .field input::placeholder { color: rgba(0, 0, 0, .4); }.field input { transition: border-color .16s, box-shadow .16s, background .16s; }.field input:hover { border-color: #b8c2cc; background: #fafcff; }.field input:focus { border-color: #006ef9; background: #fff; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }
 .custom-select { position: relative; z-index: 2; flex: 1; min-width: 0; }.custom-select:has(> button.open) { z-index: 50; }.custom-select > button { display: flex; align-items: center; justify-content: space-between; width: 100%; height: 32px; padding: 0 12px; border: 1px solid #e5e8eb; border-radius: 6px; color: rgba(0,0,0,.9); font-size: 14px; text-align: left; background: #fff; transition: border-color .16s, box-shadow .16s, background .16s; }.custom-select > button:hover { border-color: #b8c2cc; background: #fafcff; }.custom-select > button.open { border-color: #006ef9; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }.chevron { display: inline-block; flex: 0 0 auto; width: 8px; height: 8px; margin: 0 1px 3px 10px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; vertical-align: middle; transform: rotate(45deg); transform-origin: 60% 60%; transition: transform .16s, margin .16s; }.chevron.up { margin-top: 4px; margin-bottom: 0; transform: rotate(225deg); }.select-menu { position: absolute; z-index: 100; top: 36px; right: 0; left: 0; max-height: 184px; overflow-y: scroll; scrollbar-gutter: stable; padding: 4px 2px 4px 4px; border: 1px solid #e5e8eb; border-radius: 6px; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,.12); }.select-menu::-webkit-scrollbar { width: 8px; }.select-menu::-webkit-scrollbar-track { margin: 4px 0; border-radius: 4px; background: #f2f4f6; }.select-menu::-webkit-scrollbar-thumb { border: 2px solid #f2f4f6; border-radius: 4px; background: #b8c2cc; }.select-menu::-webkit-scrollbar-thumb:hover { background: #8b98a5; }.select-menu button { display: block; width: 100%; height: 36px; padding: 0 12px; border: 0; border-radius: 3px; color: rgba(0,0,0,.9); text-align: left; background: #fff; transition: color .15s, background .15s; }.select-menu button:hover { color: #006ef9; background: #f3f7fc; }.select-menu button.selected { color: #006ef9; background: #eaf3ff; }
 .field-date { grid-column: 1; }
-.records-date-range { flex: 1; min-width: 0; width: 100%; height: 32px; }
-.records-date-range.t-date-range-picker { display: flex; }
-.records-date-range .t-range-input { width: 100%; height: 32px; border-color: #e5e8eb; border-radius: 6px; box-shadow: none; transition: border-color .16s, box-shadow .16s, background .16s; }
-.records-date-range .t-range-input:hover { border-color: #b8c2cc; background: #fafcff; }
-.records-date-range .t-is-focused { border-color: #006ef9; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }
-.records-date-range .t-range-input__inner { font: inherit; font-size: 14px; }
-.records-date-range .t-range-input__inner::placeholder { color: rgba(0, 0, 0, .4); }
-.t-date-picker__panel-container { z-index: 3000; }
+.date-control-frame { display: flex; flex: 1; align-items: center; min-width: 0; height: 32px; padding: 0 10px; border: 1px solid #e5e8eb; border-radius: 6px; background: #fff; transition: border-color .16s, box-shadow .16s, background .16s; }
+.date-control-frame:hover { border-color: #b8c2cc; background: #fafcff; }
+.date-control-frame:focus-within { border-color: #006ef9; background: #fff; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }
+.records-date-range, .records-single-date { flex: 1; min-width: 0; height: 30px; }
+.records-date-range.t-date-range-picker, .records-single-date.t-date-picker { display: flex; width: 100%; }
+.date-control-frame .t-range-input, .date-control-frame .t-input { width: 100%; height: 30px; min-height: 30px; padding: 0; border: 0 !important; border-radius: 0; background: transparent; box-shadow: none !important; }
+.date-control-frame .t-range-input:hover, .date-control-frame .t-input:hover, .date-control-frame .t-range-input.t-is-focused, .date-control-frame .t-input.t-is-focused { border: 0 !important; background: transparent; box-shadow: none !important; }
+.date-control-frame .t-range-input__inner, .date-control-frame .t-input__inner { height: 30px; padding: 0; font: inherit; font-size: 14px; line-height: 30px; background: transparent; }
+.date-control-frame .t-range-input__inner::placeholder, .date-control-frame .t-input__inner::placeholder { color: rgba(0, 0, 0, .4); }
+.date-control-frame .t-range-input__suffix, .date-control-frame .t-input__suffix { margin-left: 6px; }
+.date-control-frame.mode-split { gap: 6px; }
+.date-separator { flex: 0 0 auto; color: rgba(0,0,0,.35); font-style: normal; line-height: 30px; }
+.records-date-popup { box-sizing: border-box; z-index: 5500 !important; }
+.records-date-popup--range .t-popup__content, .records-date-popup--range .t-date-range-picker__panel, .records-date-popup--range .t-date-range-picker__panel-content-wrapper { width: 100%; min-width: 0; }
+.records-date-popup--range .t-date-range-picker__panel-content-wrapper { display: flex; }
+.records-date-popup--range .t-date-picker__panel-content { flex: 1 1 0; width: 50%; min-width: 0; }
+.records-date-popup--range .t-date-picker__panel-date { width: 100%; min-width: 0; }
+.records-date-popup--range .t-date-picker__header, .records-date-popup--range .t-date-picker__table { width: 100%; min-width: 0; }
+.records-date-popup--range .t-date-picker__table table { width: 100%; min-width: 0; }
 .filter-grid > :nth-child(2) { grid-column: 2; grid-row: 1; }.filter-grid > :nth-child(3) { grid-column: 3; grid-row: 1; }.filter-grid > :nth-child(4) { grid-column: 4; grid-row: 1; }
 .filter-grid > :nth-child(5) { grid-column: 1; grid-row: 2; width: calc((100% - 24px) / 2); }.filter-grid > :nth-child(6) { grid-column: 1; grid-row: 2; width: calc((100% - 24px) / 2); margin-left: calc((100% + 24px) / 2); }
 .filter-grid > :nth-child(7) { grid-column: 2; grid-row: 2; }.filter-grid > :nth-child(8) { grid-column: 3; grid-row: 2; }.filter-grid > :nth-child(9) { grid-column: 4; grid-row: 2; }
@@ -298,9 +358,9 @@ button { font-family: inherit; }.primary, .secondary { height: 32px; padding: 0 
 .primary { border: 1px solid #006ef9; color: #fff; background: #2f82f6; }.primary:hover { border-color: #005fd9; background: #006ef9; box-shadow: 0 2px 7px rgba(0,110,249,.22); }.primary:active { background: #005bcc; box-shadow: none; }.secondary { border: 1px solid #d6dbe1; color: rgba(0, 0, 0, .65); background: #fff; }.secondary:hover { border-color: #9aa7b3; color: #006ef9; background: #f8fbff; }.secondary:active { background: #edf5ff; }.small { min-width: 60px; }
 .batch-bar { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; }.batch-actions { display: flex; gap: 16px; }.export { display: inline-flex; align-items: center; justify-content: center; width: 80px; padding: 0 10px; color: #006ef9; white-space: nowrap; }.wide { min-width: 172px; }.history-wrap { position: relative; }.history { min-width: 108px; }.history:focus { outline: none; }.history.active,.history.active:hover { border-color: #338bfa; color: #338bfa; background: #fff; box-shadow: 0 0 0 1px rgba(0,110,249,.08); }.history span { display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; margin-left: 6px; border-radius: 50%; color: #fff; font-size: 11px; background: #777; }.history:hover span,.history.active span { background: #1684ff; }.history-tip { position: absolute; right: 0; bottom: 44px; z-index: 80; width: 180px; padding: 18px 20px; border-radius: 4px; color: rgba(0,0,0,.85); font-size: 16px; line-height: 1.6; background: #fff; box-shadow: 0 10px 24px rgba(0,0,0,.12); }.history-tip::after { position: absolute; right: 54px; bottom: -7px; width: 14px; height: 14px; background: #fff; transform: rotate(45deg); content: ""; }.menu-wrap { position: relative; }.action-menu { position: absolute; z-index: 40; top: 36px; overflow: hidden; padding: 4px; border: 1px solid #e5e8eb; border-radius: 6px; background: #fff; box-shadow: 0 5px 12px rgba(0,0,0,.18); }.action-menu button { display: block; width: 100%; height: 32px; padding: 0 10px; border: 0; color: rgba(0,0,0,.9); text-align: left; background: #fff; transition: color .15s, background .15s; }.action-menu button:hover { color: #006ef9; background: #edf5ff; }.action-menu button.danger:hover { color: #d54941; background: #fff1f0; }.export-menu { left: 0; width: 142px; }
 .table-card { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; margin-top: 24px; }.table-scroll { flex: 1 1 auto; min-height: 0; overflow: scroll; scrollbar-gutter: stable; }.table-scroll::-webkit-scrollbar,.select-menu::-webkit-scrollbar { width: 8px; height: 8px; }.table-scroll::-webkit-scrollbar-track,.select-menu::-webkit-scrollbar-track { border-radius: 4px; background: #f2f4f6; }.table-scroll::-webkit-scrollbar-thumb,.select-menu::-webkit-scrollbar-thumb { border: 2px solid #f2f4f6; border-radius: 4px; background: #b8c2cc; }.table-scroll::-webkit-scrollbar-thumb:hover,.select-menu::-webkit-scrollbar-thumb:hover { background: #8b98a5; }.table-scroll table { width: 100%; min-width: 1376px; border-collapse: collapse; table-layout: fixed; }.col-check{width:38px}.col-no{width:82px}.col-patient{width:92px}.col-age{width:62px}.col-doctor{width:86px}.col-clerk{width:70px}.col-type{width:100px}.col-status{width:100px}.col-time{width:100px}.col-payment{width:80px}.col-audit{width:112px}.col-realname{width:80px}.col-operations{width:274px}
-th, td { height: 60px; padding: 0 10px; overflow: hidden; border-bottom: 1px solid #f0f1f2; font-weight: 400; text-align: left; text-overflow: ellipsis; vertical-align: middle; white-space: nowrap; }
-thead th { position: sticky; top: 0; z-index: 3; height: 52px; border-color: #e5e8eb; background: #fff; }.check { text-align: center; }.check input { appearance: none; width: 16px; height: 16px; margin: 0; border: 1px solid #d8dee5; border-radius: 4px; background-color: #fff; background-position: center; background-repeat: no-repeat; cursor: pointer; }.check input:hover { border-color: #006ef9; }.check input:checked { border-color: #006ef9; background-color: #006ef9; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.2 6.1 4.7 8.5 9.8 3.4' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }.check input:indeterminate { border-color: #006ef9; background-color: #006ef9; background-image: linear-gradient(#fff,#fff); background-size: 8px 1.5px; }
-tbody tr { transition: background .15s; }tbody tr:hover td { background: #f7faff; }.operations-head, .operations { border-left: 4px solid #e5e8eb; }.operations-head { z-index: 4; }.operation-actions { display: flex; align-items: center; gap: 0; height: 60px; }.operation-actions > button { justify-content: center; width: 60px; height: 60px; padding: 0 8px; border-bottom: 1px solid #e5e8eb; }.operations button { display: inline-flex; align-items: center; border: 0; color: #006ef9; font-size: 14px; background: #fff; cursor: pointer; transition: color .15s, background .15s; }.operations button:hover { color: #338bfa; background: #f8f8f9; }.operations button:active { color: #005ed4; background: #f8f8f9; }.more-wrap { display: flex; align-items: center; justify-content: center; width: 80px; height: 60px; }.more-wrap > button { justify-content: center; width: 80px; height: 60px; gap: 10px; border-bottom: 1px solid #e5e8eb; }.more-wrap > button .chevron { margin-left: 0; }.more-menu--floating { position: fixed; z-index: 1000; top: auto; right: auto; display: flex; flex-direction: column; width: 80px; padding: 0; overflow: hidden; border: 0; border-radius: 8px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.25)); }.more-menu--floating button { display: flex; align-items: center; width: 80px; height: 34px; padding: 0 12px; border: 0; border-bottom: 1px solid #e7e7e7; color: rgba(0,0,0,.8); font-size: 14px; text-align: left; background: #fff; }.more-menu--floating button:last-child { border-bottom: 0; }.more-menu--floating button:hover { color: #338bfa; background: #f8f8f9; }.more-menu--floating button.danger:hover { color: #d54941; background: #fff1f0; }
+.table-scroll th, .table-scroll td { height: 60px; padding: 0 10px; overflow: hidden; border-bottom: 1px solid #f0f1f2; font-weight: 400; text-align: left; text-overflow: ellipsis; vertical-align: middle; white-space: nowrap; }
+.table-scroll thead th { position: sticky; top: 0; z-index: 3; height: 52px; border-color: #e5e8eb; background: #fff; }.check { text-align: center; }.check input { appearance: none; width: 16px; height: 16px; margin: 0; border: 1px solid #d8dee5; border-radius: 4px; background-color: #fff; background-position: center; background-repeat: no-repeat; cursor: pointer; }.check input:hover { border-color: #006ef9; }.check input:checked { border-color: #006ef9; background-color: #006ef9; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.2 6.1 4.7 8.5 9.8 3.4' fill='none' stroke='white' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }.check input:indeterminate { border-color: #006ef9; background-color: #006ef9; background-image: linear-gradient(#fff,#fff); background-size: 8px 1.5px; }
+.table-scroll tbody tr { transition: background .15s; }.table-scroll tbody tr:hover td { background: #f7faff; }.operations-head, .operations { border-left: 4px solid #e5e8eb; }.operations-head { z-index: 4; }.operation-actions { display: flex; align-items: center; gap: 0; height: 60px; }.operation-actions > button { justify-content: center; width: 60px; height: 60px; padding: 0 8px; border-bottom: 1px solid #e5e8eb; }.operations button { display: inline-flex; align-items: center; border: 0; color: #006ef9; font-size: 14px; background: #fff; cursor: pointer; transition: color .15s, background .15s; }.operations button:hover { color: #338bfa; background: #f8f8f9; }.operations button:active { color: #005ed4; background: #f8f8f9; }.more-wrap { display: flex; align-items: center; justify-content: center; width: 80px; height: 60px; }.more-wrap > button { justify-content: center; width: 80px; height: 60px; gap: 10px; border-bottom: 1px solid #e5e8eb; }.more-wrap > button .chevron { margin-left: 0; }.more-menu--floating { position: fixed; z-index: 1000; top: auto; right: auto; display: flex; flex-direction: column; width: 80px; padding: 0; overflow: hidden; border: 0; border-radius: 8px; filter: drop-shadow(0 3px 3px rgba(0,0,0,.25)); }.more-menu--floating button { display: flex; align-items: center; width: 80px; height: 34px; padding: 0 12px; border: 0; border-bottom: 1px solid #e7e7e7; color: rgba(0,0,0,.8); font-size: 14px; text-align: left; background: #fff; }.more-menu--floating button:last-child { border-bottom: 0; }.more-menu--floating button:hover { color: #338bfa; background: #f8f8f9; }.more-menu--floating button.danger:hover { color: #d54941; background: #fff1f0; }
 .type-tag { display: inline-flex; align-items: center; height: 32px; padding: 0 12px; border-radius: 3px; }.type-tag.text { color: #009080; background: #d1f0ec; }.type-tag.video { color: #5c82e6; background: #edf2ff; }
 .consult-status { display: flex; align-items: center; gap: 8px; }.consult-status i { width: 12px; height: 12px; border-radius: 50%; }.consult-status .green { background: #2dcc70; }.consult-status .gray { background: #9aa7ba; }
 .audit-tag { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 10px; border-radius: 3px; }.audit-tag i { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; color: #fff; font-size: 11px; font-style: normal; }.audit-tag.done { color: #009080; background: #e3f9e9; }.audit-tag.done i { background: #009d8c; }.audit-tag.unsigned { color: #e87a1b; background: #fff7ed; }.audit-tag.unsigned i { background: #ed7417; }.audit-tag.void { color: #555; background: #f3f4f5; }.audit-tag.void i { background: #9aa7ba; }
