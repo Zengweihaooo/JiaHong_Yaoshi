@@ -334,7 +334,9 @@
             </label>
             <FormFieldError v-if="showValidation && consentError" :message="consentError" />
           </div>
-          <Button variant="primary" size="md" @click="handleSubmit">提交</Button>
+          <div ref="submitButtonRef" class="quick-consult-card__submit-anchor">
+            <Button variant="primary" size="md" @click="handleSubmit">提交</Button>
+          </div>
         </footer>
       </section>
     </main>
@@ -375,6 +377,7 @@
 
       <DiagnosisConfirmDialog
         v-model="showConfirmDialog"
+        :anchor-el="submitButtonRef"
         :groups="diagnosisConfirmGroups"
         :can-confirm="canConfirmDiagnoses"
         :is-selected="isConfirmDiagnosisSelected"
@@ -450,6 +453,7 @@ const liverFieldRef = ref(null);
 const kidneyFieldRef = ref(null);
 const diagnosisFieldRef = ref(null);
 const medicineFieldRef = ref(null);
+const submitButtonRef = ref(null);
 const confirmDiagnosisSelections = reactive({});
 const maxProofImages = 5;
 const maxProofFileSize = 5 * 1024 * 1024;
@@ -2592,6 +2596,10 @@ onBeforeUnmount(() => {
 
 .quick-consult-card :deep(.jh-btn--sm) {
   min-width: 0;
+}
+
+.quick-consult-card__submit-anchor {
+  display: inline-flex;
 }
 
 .quick-consult-card__footer :deep(.jh-btn) {

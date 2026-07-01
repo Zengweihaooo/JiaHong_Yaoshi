@@ -4,9 +4,10 @@
     <FormFieldError v-if="error" class="proof-upload__error" :message="error" />
 
     <div
+      ref="voiceBtnWrapRef"
       class="proof-upload__btn-wrap"
-      @mouseenter="hoverTarget = 'voice'"
-      @mouseleave="hoverTarget = null"
+      @mouseenter="showTooltip('voice')"
+      @mouseleave="hideTooltip"
     >
       <button
         :class="['proof-upload__btn', { 'is-active': proofVoice }]"
@@ -16,19 +17,14 @@
         <img class="proof-upload__btn-icon" :src="voiceIcon" alt="" aria-hidden="true" />
         <span>上传 语音凭证</span>
       </button>
-      <Transition name="proof-upload-tooltip">
-        <div v-if="hoverTarget === 'voice'" class="proof-upload__tooltip" role="tooltip">
-          <span class="proof-upload__tooltip-arrow" aria-hidden="true"></span>
-          <p>{{ tooltipText }}</p>
-        </div>
-      </Transition>
     </div>
 
     <div class="proof-upload__image-group">
       <div
+        ref="imageBtnWrapRef"
         class="proof-upload__btn-wrap"
-        @mouseenter="hoverTarget = 'image'"
-        @mouseleave="hoverTarget = null"
+        @mouseenter="showTooltip('image')"
+        @mouseleave="hideTooltip"
       >
         <button
           :class="['proof-upload__btn', { 'is-active': proofImages.length > 0 }]"
@@ -38,12 +34,6 @@
           <img class="proof-upload__btn-icon" :src="picIcon" alt="" aria-hidden="true" />
           <span>上传 图片凭证</span>
         </button>
-        <Transition name="proof-upload-tooltip">
-          <div v-if="hoverTarget === 'image'" class="proof-upload__tooltip" role="tooltip">
-            <span class="proof-upload__tooltip-arrow" aria-hidden="true"></span>
-            <p>{{ tooltipText }}</p>
-          </div>
-        </Transition>
       </div>
       <button class="proof-upload__example-link" type="button" @click="showExamplePreview = !showExamplePreview">
         示例图片
@@ -89,11 +79,25 @@
     <VoiceProofDialog :visible="showVoiceDialog" @close="showVoiceDialog = false" @confirm="handleVoiceConfirm" />
 
     <input ref="imageInputRef" type="file" accept="image/jpeg,image/png" multiple hidden @change="handleImageFiles" />
+
+    <Teleport to="body">
+      <Transition name="proof-upload-tooltip">
+        <div
+          v-if="hoverTarget && tooltipStyle"
+          :class="['proof-upload__tooltip', `proof-upload__tooltip--${tooltipPlacement}`]"
+          :style="tooltipStyle"
+          role="tooltip"
+        >
+          <span class="proof-upload__tooltip-arrow" aria-hidden="true"></span>
+          <p>{{ tooltipText }}</p>
+        </div>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { nextTick, onBeforeUnmount, ref } from "vue";
 import FormFieldError from "@/components/quick-consult/FormFieldError.vue";
 import VoiceProofDialog from "@/components/quick-consult/VoiceProofDialog.vue";
 import voiceIcon from "@/assets/figma-proof-upload/voice.svg";
@@ -129,10 +133,65 @@ const props = defineProps({
 
 const emit = defineEmits(["select-voice", "select-images", "remove-voice", "remove-image"]);
 
+const TOOLTIP_WIDTH = 185;
+const TOOLTIP_GAP = 8;
+const VIEWPORT_PADDING = 8;
+
 const imageInputRef = ref(null);
+const voiceBtnWrapRef = ref(null);
+const imageBtnWrapRef = ref(null);
 const hoverTarget = ref(null);
+const tooltipStyle = ref(null);
+const tooltipPlacement = ref("right");
 const showExamplePreview = ref(false);
 const showVoiceDialog = ref(false);
+
+function resolveBtnWrap(target) {
+  return target === "voice" ? voiceBtnWrapRef.value : imageBtnWrapRef.value;
+}
+
+function updateTooltipPosition(target) {
+  const wrap = resolveBtnWrap(target);
+  if (!wrap) return;
+
+  const rect = wrap.getBoundingClientRect();
+  const centerY = rect.top + rect.height / 2;
+  const spaceRight = window.innerWidth - rect.right - VIEWPORT_PADDING;
+  const spaceLeft = rect.left - VIEWPORT_PADDING;
+  const placeLeft = spaceRight < TOOLTIP_WIDTH + TOOLTIP_GAP && spaceLeft >= spaceRight;
+
+  tooltipPlacement.value = placeLeft ? "left" : "right";
+  tooltipStyle.value = {
+    top: `${centerY}px`,
+    left: placeLeft ? `${rect.left - TOOLTIP_GAP}px` : `${rect.right + TOOLTIP_GAP}px`,
+    transform: placeLeft ? "translate(-100%, -50%)" : "translateY(-50%)"
+  };
+}
+
+function showTooltip(target) {
+  hoverTarget.value = target;
+  nextTick(() => updateTooltipPosition(target));
+}
+
+function hideTooltip() {
+  hoverTarget.value = null;
+  tooltipStyle.value = null;
+}
+
+function handleViewportChange() {
+  if (hoverTarget.value) updateTooltipPosition(hoverTarget.value);
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", handleViewportChange);
+  window.addEventListener("scroll", handleViewportChange, true);
+}
+
+onBeforeUnmount(() => {
+  if (typeof window === "undefined") return;
+  window.removeEventListener("resize", handleViewportChange);
+  window.removeEventListener("scroll", handleViewportChange, true);
+});
 
 function openVoiceDialog() {
   showVoiceDialog.value = true;
@@ -367,17 +426,18 @@ function handleImageFiles(event) {
 }
 
 .proof-upload__tooltip {
-  position: absolute;
-  z-index: 20;
-  top: 50%;
-  left: calc(100% + 8px);
+  position: fixed;
+  z-index: 4000;
   display: flex;
   align-items: center;
   width: 185px;
   filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.05)) drop-shadow(0 8px 5px rgba(0, 0, 0, 0.06))
     drop-shadow(0 5px 2.5px rgba(0, 0, 0, 0.1));
-  transform: translateY(-50%);
   pointer-events: none;
+}
+
+.proof-upload__tooltip--left {
+  flex-direction: row-reverse;
 }
 
 .proof-upload__tooltip p {
@@ -396,8 +456,15 @@ function handleImageFiles(event) {
   width: 0;
   height: 0;
   border-top: 5px solid transparent;
-  border-right: 6px solid rgba(0, 0, 0, 0.9);
   border-bottom: 5px solid transparent;
+}
+
+.proof-upload__tooltip--right .proof-upload__tooltip-arrow {
+  border-right: 6px solid rgba(0, 0, 0, 0.9);
+}
+
+.proof-upload__tooltip--left .proof-upload__tooltip-arrow {
+  border-left: 6px solid rgba(0, 0, 0, 0.9);
 }
 
 .proof-upload-tooltip-enter-active,
@@ -408,6 +475,5 @@ function handleImageFiles(event) {
 .proof-upload-tooltip-enter-from,
 .proof-upload-tooltip-leave-to {
   opacity: 0;
-  transform: translateY(-50%) translateX(-4px);
 }
 </style>

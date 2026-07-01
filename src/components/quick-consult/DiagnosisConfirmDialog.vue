@@ -2,7 +2,9 @@
   <Teleport to="body">
     <div v-if="modelValue" class="diagnosis-confirm-overlay" @click.self="closeDialog">
       <section
+        ref="dialogRef"
         class="diagnosis-confirm-dialog"
+        :style="dialogStyle"
         role="dialog"
         aria-modal="true"
         aria-labelledby="diagnosis-confirm-title"
@@ -68,9 +70,10 @@
 </template>
 
 <script setup>
+import { nextTick, onBeforeUnmount, ref, watch } from "vue";
 import closeIcon from "@/assets/figma-diagnosis-confirm/close.svg";
 
-defineProps({
+const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false
@@ -86,10 +89,90 @@ defineProps({
   isSelected: {
     type: Function,
     default: () => false
+  },
+  anchorEl: {
+    type: Object,
+    default: null
   }
 });
 
 const emit = defineEmits(["update:modelValue", "close", "confirm", "toggle"]);
+
+const dialogRef = ref(null);
+const dialogStyle = ref({});
+
+const CONFIRM_GAP = 8;
+const VIEWPORT_PADDING = 20;
+
+function resolveAnchorElement(anchor) {
+  if (!anchor) return null;
+  return anchor.$el ?? anchor;
+}
+
+function updateDialogPosition() {
+  const anchorElement = resolveAnchorElement(props.anchorEl);
+  const dialogElement = dialogRef.value;
+  if (!anchorElement || !dialogElement) return;
+
+  const anchorRect = anchorElement.getBoundingClientRect();
+  const maxWidth = Math.min(640, window.innerWidth - VIEWPORT_PADDING * 2);
+  const right = Math.max(VIEWPORT_PADDING, window.innerWidth - anchorRect.right);
+  const bottom = Math.max(
+    VIEWPORT_PADDING,
+    window.innerHeight - anchorRect.top + CONFIRM_GAP
+  );
+  const maxHeight = window.innerHeight - bottom - VIEWPORT_PADDING;
+
+  dialogStyle.value = {
+    right: `${right}px`,
+    bottom: `${bottom}px`,
+    width: `${maxWidth}px`,
+    maxHeight: `${Math.max(240, maxHeight)}px`
+  };
+}
+
+function schedulePositionUpdate() {
+  nextTick(() => {
+    updateDialogPosition();
+    nextTick(updateDialogPosition);
+  });
+}
+
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) schedulePositionUpdate();
+  }
+);
+
+watch(
+  () => props.groups.length,
+  () => {
+    if (props.modelValue) schedulePositionUpdate();
+  }
+);
+
+watch(
+  () => props.anchorEl,
+  () => {
+    if (props.modelValue) schedulePositionUpdate();
+  }
+);
+
+function handleViewportChange() {
+  if (props.modelValue) updateDialogPosition();
+}
+
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", handleViewportChange);
+  window.addEventListener("scroll", handleViewportChange, true);
+}
+
+onBeforeUnmount(() => {
+  if (typeof window === "undefined") return;
+  window.removeEventListener("resize", handleViewportChange);
+  window.removeEventListener("scroll", handleViewportChange, true);
+});
 
 function closeDialog() {
   emit("update:modelValue", false);
@@ -102,18 +185,14 @@ function closeDialog() {
   position: fixed;
   inset: 0;
   z-index: 3000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
   background: rgba(122, 136, 152, 0.3);
 }
 
 .diagnosis-confirm-dialog {
+  position: fixed;
   display: flex;
   flex-direction: column;
-  width: min(560px, calc(100vw - 40px));
-  max-height: calc(100vh - 40px);
+  width: 640px;
   border-radius: 8px;
   background: #fff;
   overflow: hidden;
@@ -240,7 +319,7 @@ function closeDialog() {
 
 .diagnosis-confirm-group__medicine {
   margin: 0;
-  color: rgba(0, 0, 0, 0.6);
+  color: #697383;
   font-family: "Microsoft YaHei UI", "Microsoft YaHei", Arial, sans-serif;
   font-size: 14px;
   font-weight: 400;
@@ -297,7 +376,7 @@ function closeDialog() {
   flex-shrink: 0;
   align-items: center;
   justify-content: flex-end;
-  padding: 16px 24px 16px 10px;
+  padding: 16px 0 16px 10px;
   background: #fff;
 }
 
