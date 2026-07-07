@@ -50,44 +50,22 @@
                           {
                             'is-active': patientNameFocused,
                             'is-error': fieldError('patientName'),
-                            'is-field-error-flash': fieldError('patientName'),
-                            'patient-name-control--single': patientNameDotMode === 'b' && !patientNameFocused
+                            'is-field-error-flash': fieldError('patientName')
                           }
                         ]"
                         @focusin="patientNameFocused = true"
                         @focusout="handlePatientNameFocusout"
                       >
-                      <div
-                        :class="[
-                          'patient-name-inputbox',
-                          { 'patient-name-inputbox--inline-dot': showInlineNameDot }
-                        ]"
-                      >
+                      <div class="patient-name-inputbox">
                         <input
                           ref="patientNameInput"
                           :value="form.patientName"
-                          :class="[
-                            'patient-name-input',
-                            {
-                              'patient-name-input--with-inline-dot': showInlineNameDot,
-                              'patient-name-input--with-clear': showInlineNameDot && form.patientName
-                            }
-                          ]"
+                          class="patient-name-input"
                           type="text"
                           placeholder="请输入姓名"
                           @blur="markFieldTouched('patientName')"
                           @input="handlePatientNameInput"
                         />
-                        <button
-                          v-if="showInlineNameDot"
-                          class="patient-name-dot patient-name-dot--inline"
-                          type="button"
-                          aria-label="插入姓名间隔点"
-                          @mousedown.prevent
-                          @click="insertPatientNameDot"
-                        >
-                          ·
-                        </button>
                         <button
                           v-if="form.patientName"
                           class="patient-name-clear"
@@ -619,9 +597,10 @@ const consentDialogCentered = computed(() => props.consentVariant === "a");
 
 const patientNameDotMode = computed(() => props.patientNameDotVariant || "a");
 
-const showSeparateNameDot = computed(() => patientNameDotMode.value === "a");
-
-const showInlineNameDot = computed(() => patientNameDotMode.value === "b" && patientNameFocused.value);
+const showSeparateNameDot = computed(() => {
+  if (patientNameDotMode.value === "a") return true;
+  return patientNameDotMode.value === "b" && patientNameFocused.value;
+});
 
 const useAbFigmaVariantC = computed(() => props.abMode && props.diagnosisLinkVariant === "c");
 
@@ -2348,10 +2327,6 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-.patient-name-control--single .patient-name-inputbox {
-  width: 100%;
-}
-
 .patient-name-inputbox {
   position: relative;
   display: flex;
@@ -2416,43 +2391,6 @@ onBeforeUnmount(() => {
   transform: translateY(-50%);
 }
 
-.patient-name-input--with-inline-dot {
-  padding-right: 42px;
-}
-
-.patient-name-input--with-inline-dot.patient-name-input--with-clear {
-  padding-right: 62px;
-}
-
-.patient-name-dot--inline {
-  position: absolute;
-  top: 50%;
-  right: 10px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: 0;
-  border-radius: 4px;
-  color: var(--jh-color-primary);
-  font-size: 18px;
-  font-weight: 700;
-  line-height: 1;
-  background: transparent;
-  cursor: pointer;
-  transform: translateY(-50%);
-}
-
-.patient-name-inputbox--inline-dot:has(.patient-name-clear) .patient-name-dot--inline {
-  right: 32px;
-}
-
-.patient-name-dot--inline:hover {
-  background: color-mix(in srgb, var(--jh-color-primary) 8%, transparent);
-}
-
 .patient-name-dot {
   display: inline-flex;
   flex: 0 0 auto;
@@ -2461,13 +2399,18 @@ onBeforeUnmount(() => {
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid var(--jh-color-border);
-  border-radius: var(--jh-radius-sm);
+  border: 1px solid #e5e8eb;
+  border-radius: 6px;
   color: var(--jh-color-primary);
   font-size: 18px;
   line-height: 1;
-  background: var(--jh-color-bg-surface);
+  background: #fff;
   cursor: pointer;
+}
+
+.patient-name-control.is-active .patient-name-dot {
+  border-color: var(--jh-color-primary);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--jh-color-primary) 18%, transparent);
 }
 
 .patient-name-dot:hover {
@@ -3461,37 +3404,10 @@ onBeforeUnmount(() => {
 
 .quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt--card) {
   margin-top: 12px;
-  gap: 8px;
-  padding: 8px 16px 8px;
-  border: 1px solid #d8e9ff;
-  border-radius: 10px;
-  background: #f5f9ff;
-}
-
-.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-card) {
-  gap: 4px;
-  min-height: 72px;
-  padding: 8px 12px;
-  border-color: #cfe3ff;
-  background: #ffffff;
-  box-shadow: 0 4px 12px rgba(0, 110, 249, 0.08);
-}
-
-.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-label) {
-  line-height: 18px;
 }
 
 .quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-medicine) {
   line-height: 20px;
-}
-
-.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-nav) {
-  margin-top: 0;
-}
-
-.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-nav-btn) {
-  width: 24px;
-  height: 24px;
 }
 
 .quick-consult-page--ab-figma-c .quick-consult-card__footer {

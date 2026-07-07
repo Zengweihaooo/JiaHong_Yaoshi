@@ -42,39 +42,54 @@
     <button class="ab-back" type="button" @click="router.push({ name: 'home' })">返回药师首页</button>
   </section>
 
-  <section v-else-if="step === 'guide'" class="ab-guide-stage" aria-label="AB 测试引导">
-    <img class="ab-guide-stage__preview" :src="activeGuidePreview" :alt="`${activeGuide.name} A 方案预览`" />
-    <div class="ab-guide-stage__dim" aria-hidden="true"></div>
-
-    <header class="ab-guide-float ab-guide-float--header">
-      <p class="ab-guide-float__eyebrow">测试项目：{{ activeGuide.name }}</p>
-      <h1>
-        {{ activeGuide.titleBefore }}<strong>{{ activeGuide.primary }}</strong>{{ activeGuide.titleMiddle }}<strong>{{ activeGuide.secondary }}</strong>{{ activeGuide.titleAfter || "" }}
-      </h1>
-      <p>{{ activeGuide.desc }}</p>
-    </header>
-
-    <div
-      v-for="(hotspot, index) in activeHotspots"
-      :key="`hotspot-${index}`"
-      class="ab-guide-hotspot"
-      :style="hotspotStyle(hotspot.anchor)"
-    >
-      <span class="ab-guide-hotspot__ring" aria-hidden="true"></span>
-      <span class="ab-guide-hotspot__tag">{{ hotspot.labelText }}</span>
-    </div>
-
+  <section
+    v-else-if="step === 'guide'"
+    class="ab-guide-stage"
+    aria-label="AB 测试引导"
+    @click="step = 'select'"
+  >
+    <img class="ab-guide-stage__image" :src="activeGuideImage" :alt="`${activeGuideName} 引导说明`" />
     <button
-      v-for="option in activeGuide.options"
-      :key="option.key"
-      class="ab-guide-float ab-guide-float--option"
+      class="ab-guide-stage__back"
       type="button"
-      :style="cardStyle(option.card)"
-      @click="enterVariant(option.key)"
+      @click.stop="step = 'landing'"
     >
-      <strong>选项 {{ option.label }}</strong>
-      <span>{{ option.desc }}</span>
+      返回测试首页
     </button>
+  </section>
+
+  <section v-else-if="step === 'select'" class="ab-select-stage" aria-label="AB 测试方案选择">
+    <div class="ab-select-card">
+      <div class="ab-select-card__intro">
+        <h1 class="ab-select-card__title">
+          <template v-for="(seg, index) in activeSelect.title" :key="`seg-${index}`">
+            <strong v-if="seg.bold">{{ seg.text }}</strong>
+            <span v-else>{{ seg.text }}</span>
+          </template>
+        </h1>
+        <p class="ab-select-card__subtitle">
+          请按照任意顺序体验以下所有页面方案，一个方案操作结束后，在页面左下角切换方案。
+        </p>
+      </div>
+
+      <div class="ab-select-card__options">
+        <button
+          v-for="option in activeSelect.options"
+          :key="option.key"
+          class="ab-select-option"
+          type="button"
+          @click="enterVariant(option.key)"
+        >
+          <span class="ab-select-option__label">{{ option.label }}</span>
+          <span class="ab-select-option__desc">
+            <span v-if="option.dot" class="ab-select-option__dot" aria-hidden="true">·</span>
+            <span class="ab-select-option__text">
+              {{ option.desc }}<strong v-if="option.strong">{{ option.strong }}</strong>
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
 
     <button class="ab-guide-stage__back" type="button" @click="step = 'landing'">返回测试首页</button>
   </section>
@@ -139,191 +154,81 @@ function previewAsset(fileName) {
   return `${normalizedBase}images/ab-test/${fileName}?v=${previewAssetVersion}`;
 }
 
+function guideAsset(fileName) {
+  const base = import.meta.env.BASE_URL || "/";
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+  return `${normalizedBase}images/ab-test/guide/${fileName}?v=${previewAssetVersion}`;
+}
+
 const testItems = [
-  { key: "quick-consult", label: "快速问诊页面", ready: true, preview: previewAsset("quick-consult.png") },
-  { key: "quick-consult-form", label: "快速问诊表单", ready: true, preview: previewAsset("quick-consult-form.png") },
-  { key: "quick-consult-consent", label: "知情同意书确认", ready: true, preview: previewAsset("quick-consult-consent.png") },
-  { key: "quick-consult-name-dot", label: "姓名间隔点", ready: true, preview: previewAsset("quick-consult-name-dot.png") },
-  { key: "records-date-picker", label: "问诊记录日期", ready: true, preview: previewAsset("records-date-picker.png") }
+  { key: "quick-consult", label: "快速问诊页面", ready: true, preview: previewAsset("quick-consult.png"), guide: guideAsset("quick-consult.jpg") },
+  { key: "quick-consult-form", label: "快速问诊表单", ready: true, preview: previewAsset("quick-consult-form.png"), guide: guideAsset("quick-consult-form.jpg") },
+  { key: "quick-consult-consent", label: "知情同意书确认", ready: true, preview: previewAsset("quick-consult-consent.png"), guide: guideAsset("quick-consult-consent.jpg") },
+  { key: "quick-consult-name-dot", label: "姓名间隔点", ready: true, preview: previewAsset("quick-consult-name-dot.png"), guide: guideAsset("quick-consult-name-dot.jpg") },
+  { key: "records-date-picker", label: "问诊记录日期", ready: true, preview: previewAsset("records-date-picker.png"), guide: guideAsset("records-date-picker.jpg") }
 ];
 
-const guideMap = {
+const activeGuideImage = computed(() => {
+  return testItems.find((item) => item.key === activeTestKey.value)?.guide || "";
+});
+
+const activeGuideName = computed(() => {
+  return testItems.find((item) => item.key === activeTestKey.value)?.label || "";
+});
+
+const selectMap = {
   "quick-consult": {
-    name: "快速问诊页面",
-    titleBefore: "请选择您喜欢的",
-    primary: "药品与疾病",
-    titleMiddle: "关联",
-    secondary: "展示方式",
-    desc: "请关注右侧「所需药品」区域：A 平铺展示、B 提交弹窗、C 卡片堆叠并可左右切换。",
+    title: [
+      { text: "进入测试方案，任意选择两种或以上药品，然后进行对应症状的匹配。", bold: true }
+    ],
     options: [
-      {
-        key: "a",
-        label: "A",
-        desc: "在页面中直接展示每个药品对应的疾病选项",
-        anchor: { top: 34, left: 51, width: 43, height: 34 },
-        card: { top: 20, left: 30 }
-      },
-      {
-        key: "b",
-        label: "B",
-        desc: "提交时以弹窗形式确认药品与疾病的对应关系",
-        anchor: { top: 76, left: 70, width: 16, height: 9 },
-        card: { top: 60, left: 48 }
-      },
-      {
-        key: "c",
-        label: "C",
-        desc: "页面内以卡片展示单个药品病症，右下角可左右切换",
-        anchor: { top: 34, left: 51, width: 43, height: 34 },
-        card: { top: 52, left: 30 }
-      }
+      { key: "a", label: "方案A", desc: "匹配药品的环节以", strong: "高亮块显示" },
+      { key: "b", label: "方案B", desc: "匹配药品的环节以", strong: "提交后的弹窗显示" },
+      { key: "c", label: "方案C", desc: "匹配药品的环节以", strong: "高亮翻页卡片显示" }
     ]
   },
   "quick-consult-form": {
-    name: "快速问诊表单",
-    titleBefore: "请选择您喜欢的",
-    primary: "表单校验",
-    titleMiddle: "错误",
-    secondary: "提示方式",
-    desc: "请关注左侧基本信息区域与页面顶部：A 在字段下方提示，B 统一在顶部堆叠提示。",
+    title: [
+      { text: "进入测试方案，点击提交，查看不同的报错显示方案。", bold: true }
+    ],
     options: [
-      {
-        key: "a",
-        label: "A",
-        desc: "可修改字段在下方提示，系统类错误在顶部提示（如暂无医生）",
-        anchor: { top: 30, left: 11, width: 24, height: 14 },
-        card: { top: 42, left: 2 }
-      },
-      {
-        key: "b",
-        label: "B",
-        desc: "所有校验错误统一在顶部堆叠提示，约 3 秒渐消上滑消失",
-        anchor: { top: 12, left: 24, width: 48, height: 11 },
-        card: { top: 30, left: 62 }
-      }
+      { key: "a", label: "方案A", desc: "报错位置高亮且", strong: "报错文字常驻" },
+      { key: "b", label: "方案B", desc: "报错位置高亮，", strong: "报错文字弹窗显示" }
     ]
   },
   "quick-consult-consent": {
-    name: "知情同意书确认",
-    titleBefore: "请选择您喜欢的",
-    primary: "知情同意书",
-    titleMiddle: "确认按钮",
-    secondary: "位置",
-    desc: "请关注知情同意书弹窗位置：A 屏幕居中且按钮居中，B 靠近提交按钮右下且按钮右对齐。",
+    title: [
+      { text: "进入测试方案，点击提交，查看不同的弹窗位置方案。", bold: true }
+    ],
     options: [
-      {
-        key: "a",
-        label: "A",
-        desc: "弹窗屏幕居中，取消与同意按钮水平居中",
-        anchor: { top: 36, left: 35, width: 30, height: 24 },
-        card: { top: 24, left: 6 }
-      },
-      {
-        key: "b",
-        label: "B",
-        desc: "弹窗靠近提交按钮右下，按钮右对齐",
-        anchor: { top: 68, left: 60, width: 30, height: 22 },
-        card: { top: 48, left: 6 }
-      }
+      { key: "a", label: "方案A", desc: "弹窗位置居中" },
+      { key: "b", label: "方案B", desc: "弹窗位置靠右下" }
     ]
   },
   "quick-consult-name-dot": {
-    name: "姓名间隔点",
-    titleBefore: "请选择您喜欢的",
-    primary: "少数民族姓名",
-    titleMiddle: "间隔点",
-    secondary: "输入方式",
-    desc: "请关注「用药人姓名」输入框：三种方案对间隔点按钮的展示与输入方式不同。",
+    title: [
+      { text: "进入测试方案，任意输入带·的名字", bold: true },
+      { text: "（如 依力哈尔·买买提）", bold: false },
+      { text: "，查看·的输入方案。", bold: true }
+    ],
     options: [
-      {
-        key: "a",
-        label: "A",
-        desc: "间隔点按钮常驻在输入框右侧，随时可点击插入",
-        anchor: { top: 20, left: 9, width: 24, height: 9 },
-        card: { top: 10, left: 36 }
-      },
-      {
-        key: "b",
-        label: "B",
-        desc: "输入时输入框内显示间隔点按钮，输入完成后与输入框合并为单框",
-        anchor: { top: 20, left: 9, width: 24, height: 9 },
-        card: { top: 28, left: 36 }
-      },
-      {
-        key: "c",
-        label: "C",
-        desc: "无间隔点按钮，输入的非姓名字符自动转换为间隔点",
-        anchor: { top: 20, left: 9, width: 24, height: 9 },
-        card: { top: 46, left: 36 }
-      }
+      { key: "a", label: "方案A", desc: "输入器常驻", dot: true },
+      { key: "b", label: "方案B", desc: "输入器在输入时出现", dot: true },
+      { key: "c", label: "方案C", desc: "输入任意中文特殊字符自动转·" }
     ]
   },
   "records-date-picker": {
-    name: "问诊记录日期",
-    titleBefore: "请选择您喜欢的",
-    primary: "问诊记录",
-    titleMiddle: "日期范围",
-    secondary: "选择方式",
-    desc: "请关注筛选区第一行日期控件：A 合并为一个范围选择器，B 拆成开始与结束两个选择器。",
+    title: [
+      { text: "进入测试方案，输入日期范围，查看不同的日期选择方案。", bold: true }
+    ],
     options: [
-      {
-        key: "a",
-        label: "A",
-        desc: "合并选择：一个日期范围选择器，可任意顺序点选起止日期",
-        anchor: { top: 15, left: 7, width: 30, height: 8 },
-        card: { top: 6, left: 40 }
-      },
-      {
-        key: "b",
-        label: "B",
-        desc: "分开选择：开始日期与结束日期各用一个独立选择器",
-        anchor: { top: 15, left: 7, width: 30, height: 8 },
-        card: { top: 24, left: 40 }
-      }
+      { key: "a", label: "方案A", desc: "日期范围选择器，开始日期与结束日期一起选择" },
+      { key: "b", label: "方案B", desc: "日期选择器，开始日期与结束日分开选择" }
     ]
   }
 };
 
-const activeGuide = computed(() => guideMap[activeTestKey.value]);
-
-const activeGuidePreview = computed(() => {
-  return testItems.find((item) => item.key === activeTestKey.value)?.preview || "";
-});
-
-const activeHotspots = computed(() => {
-  const options = activeGuide.value?.options || [];
-  const anchorMap = new Map();
-
-  options.forEach((option) => {
-    const key = `${option.anchor.top}-${option.anchor.left}-${option.anchor.width}-${option.anchor.height}`;
-    if (!anchorMap.has(key)) {
-      anchorMap.set(key, { anchor: option.anchor, labels: [option.label] });
-      return;
-    }
-    anchorMap.get(key).labels.push(option.label);
-  });
-
-  return Array.from(anchorMap.values()).map((item) => ({
-    anchor: item.anchor,
-    labelText: item.labels.length > 1 ? `选项 ${item.labels.join(" / ")}` : `选项 ${item.labels[0]}`
-  }));
-});
-
-function hotspotStyle(anchor) {
-  return {
-    top: `${anchor.top}%`,
-    left: `${anchor.left}%`,
-    width: `${anchor.width}%`,
-    height: `${anchor.height}%`
-  };
-}
-
-function cardStyle(card) {
-  return {
-    top: `${card.top}%`,
-    left: `${card.left}%`
-  };
-}
+const activeSelect = computed(() => selectMap[activeTestKey.value] || { title: [], options: [] });
 
 function openTest(index) {
   const item = testItems[index];
@@ -511,127 +416,21 @@ onMounted(() => {
   position: fixed;
   inset: 0;
   z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   overflow: hidden;
   background: #d7dbe1;
+  cursor: pointer;
 }
 
-.ab-guide-stage__preview {
+.ab-guide-stage__image {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
   user-select: none;
-}
-
-.ab-guide-stage__dim {
-  position: absolute;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.34);
   pointer-events: none;
-}
-
-.ab-guide-float {
-  position: absolute;
-  z-index: 4;
-}
-
-.ab-guide-float--header {
-  top: 20px;
-  left: 50%;
-  width: min(720px, calc(100vw - 48px));
-  padding: 18px 24px;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 18px 50px rgba(16, 42, 67, 0.18);
-  transform: translateX(-50%);
-}
-
-.ab-guide-float__eyebrow {
-  margin: 0 0 8px;
-  color: #697383;
-  font-size: 14px;
-  line-height: 22px;
-}
-
-.ab-guide-float--header h1 {
-  margin: 0 0 8px;
-  color: #424751;
-  font-size: clamp(22px, 2.2vw, 30px);
-  font-weight: 400;
-  line-height: 1.35;
-}
-
-.ab-guide-float--header h1 strong {
-  font-weight: 700;
-}
-
-.ab-guide-float--header p:last-child {
-  margin: 0;
-  color: #697383;
-  font-size: 15px;
-  line-height: 24px;
-}
-
-.ab-guide-hotspot {
-  position: absolute;
-  z-index: 2;
-}
-
-.ab-guide-hotspot__ring {
-  position: absolute;
-  inset: 0;
-  border: 2px solid #006ef9;
-  border-radius: 8px;
-  background: rgba(0, 110, 249, 0.08);
-  box-shadow: 0 0 0 1px rgba(0, 110, 249, 0.28), 0 0 18px rgba(0, 110, 249, 0.28);
-  animation: ab-guide-pulse 2.2s ease-in-out infinite;
-}
-
-.ab-guide-hotspot__tag {
-  position: absolute;
-  top: -11px;
-  left: 10px;
-  z-index: 1;
-  padding: 2px 8px;
-  border-radius: 999px;
-  color: #ffffff;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 18px;
-  background: #006ef9;
-}
-
-.ab-guide-float--option {
-  display: block;
-  width: min(272px, 30vw);
-  padding: 16px 18px;
-  border: 1px solid #e5e8eb;
-  border-radius: 10px;
-  background: #ffffff;
-  text-align: left;
-  box-shadow: 0 12px 32px rgba(16, 42, 67, 0.14);
-  cursor: pointer;
-  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
-}
-
-.ab-guide-float--option:hover {
-  border-color: var(--jh-color-primary, #006ef9);
-  background: #f5f9ff;
-  transform: translateY(-2px);
-}
-
-.ab-guide-float--option strong {
-  display: block;
-  margin-bottom: 6px;
-  color: var(--jh-color-primary, #006ef9);
-  font-size: 20px;
-  line-height: 26px;
-}
-
-.ab-guide-float--option span {
-  color: #697383;
-  font-size: 14px;
-  line-height: 22px;
 }
 
 .ab-guide-stage__back {
@@ -655,26 +454,130 @@ onMounted(() => {
   background: #f5f9ff;
 }
 
-@keyframes ab-guide-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 1px rgba(0, 110, 249, 0.28), 0 0 14px rgba(0, 110, 249, 0.22);
-  }
-
-  50% {
-    box-shadow: 0 0 0 1px rgba(0, 110, 249, 0.45), 0 0 22px rgba(0, 110, 249, 0.38);
-  }
+.ab-select-stage {
+  position: fixed;
+  inset: 0;
+  z-index: 25;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  overflow: auto;
+  background: #f8f8f9;
 }
 
-@media (max-width: 960px) {
-  .ab-guide-float--header {
-    top: 12px;
-    width: calc(100vw - 24px);
-    padding: 14px 16px;
+.ab-select-card {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  width: min(920px, 100%);
+  padding: 54px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgba(16, 42, 67, 0.1);
+}
+
+.ab-select-card__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.ab-select-card__title {
+  margin: 0;
+  color: #424751;
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.496;
+  letter-spacing: 1.5px;
+}
+
+.ab-select-card__title strong {
+  font-weight: 700;
+}
+
+.ab-select-card__subtitle {
+  margin: 0;
+  color: #424751;
+  font-size: 18px;
+  line-height: 1.496;
+  letter-spacing: 1.2px;
+}
+
+.ab-select-card__options {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: clamp(16px, 3vw, 43px);
+}
+
+.ab-select-option {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  min-height: 141px;
+  padding: 24px;
+  border: 1px solid #e5e8eb;
+  border-radius: 14px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.ab-select-option:hover {
+  border-color: var(--jh-color-primary, #006ef9);
+  box-shadow: 0 12px 28px -16px rgba(0, 110, 249, 0.5);
+  transform: translateY(-2px);
+}
+
+.ab-select-option__label {
+  color: var(--jh-color-primary, #006ef9);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.302;
+}
+
+.ab-select-option__desc {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  color: #424751;
+  font-size: 20px;
+  line-height: 1.4;
+  letter-spacing: 1.6px;
+}
+
+.ab-select-option__text strong {
+  font-weight: 700;
+}
+
+.ab-select-option__dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border: 0.75px solid #e5e8eb;
+  border-radius: 4.5px;
+  color: var(--jh-color-primary, #006ef9);
+  font-size: 24px;
+  line-height: 1;
+}
+
+@media (max-width: 720px) {
+  .ab-select-card {
+    padding: 32px 24px;
   }
 
-  .ab-guide-float--option {
-    width: min(240px, 72vw);
+  .ab-select-option {
+    padding: 18px;
+  }
+
+  .ab-select-option__desc {
+    font-size: 16px;
   }
 }
 </style>

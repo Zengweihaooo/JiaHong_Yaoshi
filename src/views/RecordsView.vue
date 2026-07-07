@@ -19,7 +19,7 @@
       <section class="filter-card" aria-label="问诊记录筛选">
         <div class="filter-grid">
           <label class="field field-date">
-            <span>问诊类型</span>
+            <span>问诊日期</span>
             <div class="date-control-frame" :class="'mode-' + datePickerMode" @click.stop>
               <t-date-range-picker
                 v-if="datePickerMode === 'range'"
