@@ -1504,21 +1504,6 @@ function pushTopValidationNotices() {
 
 function setupConsentAbDemoState() {
   fillConsultTemplate();
-
-  const escitalopram = medicineOptions.find((item) => item.name === "草酸艾司西酞普兰片");
-  const coldMedicine = medicineOptions.find((item) => item.name === "感冒灵胶囊");
-  const baseId = Date.now();
-
-  form.diagnoses = ["认知障碍", "急性鼻咽炎 [感冒]"];
-  form.medicines = [
-    escitalopram ? { ...createMedicineRecord(escitalopram), id: baseId, linkedDiagnosis: "认知障碍" } : null,
-    coldMedicine ? { ...createMedicineRecord(coldMedicine), id: baseId + 1, linkedDiagnosis: "急性鼻咽炎 [感冒]" } : null
-  ].filter(Boolean);
-  form.agreed = false;
-
-  showValidation.value = false;
-  submitAttempted.value = false;
-  consentError.value = "";
 }
 
 function setupFormValidationAbDemoState() {
@@ -1557,15 +1542,6 @@ function setupFormValidationAbDemoState() {
     duration: 8
   };
 
-  const escitalopram = medicineOptions.find((item) => item.name === "草酸艾司西酞普兰片");
-  if (escitalopram) {
-    form.medicines.push({
-      ...createMedicineRecord(escitalopram),
-      id: Date.now(),
-      linkedDiagnosis: null
-    });
-  }
-
   showValidation.value = false;
   submitAttempted.value = false;
   consentError.value = "";
@@ -1579,18 +1555,6 @@ function setupFormValidationAbDemoState() {
 
 function setupAbDemoState() {
   fillConsultTemplate();
-
-  const escitalopram = medicineOptions.find((item) => item.name === "草酸艾司西酞普兰片");
-  const coldMedicine = medicineOptions.find((item) => item.name === "感冒灵胶囊");
-  const clarithromycin = medicineOptions.find((item) => item.name === "克拉霉素胶囊");
-  const baseId = Date.now();
-
-  form.diagnoses = ["认知障碍", "急性鼻咽炎 [感冒]"];
-  form.medicines = [
-    escitalopram ? { ...createMedicineRecord(escitalopram), id: baseId, linkedDiagnosis: "认知障碍" } : null,
-    coldMedicine ? { ...createMedicineRecord(coldMedicine), id: baseId + 1, linkedDiagnosis: "急性鼻咽炎 [感冒]" } : null,
-    clarithromycin ? { ...createMedicineRecord(clarithromycin), id: baseId + 2, linkedDiagnosis: null } : null
-  ].filter(Boolean);
 }
 
 function handleSubmit() {
@@ -1757,7 +1721,7 @@ onMounted(() => {
     }
   } else if (props.formAbMode) {
     setupFormValidationAbDemoState();
-  } else if (props.abMode && props.diagnosisLinkVariant) {
+  } else if (props.abMode) {
     setupAbDemoState();
   }
   document.addEventListener("mousedown", closeDiagnosisDropdown);

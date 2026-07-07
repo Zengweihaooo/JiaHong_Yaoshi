@@ -29,7 +29,7 @@ defineEmits(["back", "switch-variant"]);
 <style scoped>
 .ab-quick-consult-nav {
   position: fixed;
-  right: 32px;
+  left: 32px;
   bottom: 28px;
   z-index: 60;
   display: inline-flex;
