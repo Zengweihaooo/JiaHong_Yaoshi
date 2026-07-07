@@ -1,7 +1,7 @@
 <template>
   <div class="quick-consult-page">
     <header class="quick-consult-page__topbar">
-      <Button class="quick-consult-page__back" variant="neutral" size="md" icon @click="router.push('/')">
+      <Button class="quick-consult-page__back" variant="neutral" size="md" icon @click="handleBack">
         <el-icon class="quick-consult-page__back-icon" aria-hidden="true">
           <ArrowLeft />
         </el-icon>
@@ -15,13 +15,13 @@
     </header>
 
     <main class="quick-consult-page__main">
-      <section class="quick-consult-card" aria-label="快速问诊表单">
+      <section class="quick-consult-card" aria-label="快速问诊表单" @keydown.enter.capture="handleEnterAdvance">
         <header class="quick-consult-card__header">
           <div class="quick-consult-card__title-row">
             <h1>武汉市好药师大药房南岸店</h1>
             <span class="quick-consult-card__type">快速问诊</span>
           </div>
-          <Button variant="outline-secondary" size="sm" @click="router.push('/')">取消问诊</Button>
+          <Button variant="outline-secondary" size="sm" @click="handleBack">取消问诊</Button>
         </header>
 
         <div class="quick-consult-card__body">
@@ -47,21 +47,47 @@
                       <div
                         :class="[
                           'patient-name-control',
-                          { 'is-active': patientNameFocused, 'is-error': fieldError('patientName'), 'is-field-error-flash': fieldError('patientName') }
+                          {
+                            'is-active': patientNameFocused,
+                            'is-error': fieldError('patientName'),
+                            'is-field-error-flash': fieldError('patientName'),
+                            'patient-name-control--single': patientNameDotMode === 'b' && !patientNameFocused
+                          }
                         ]"
                         @focusin="patientNameFocused = true"
                         @focusout="handlePatientNameFocusout"
                       >
-                      <div class="patient-name-inputbox">
+                      <div
+                        :class="[
+                          'patient-name-inputbox',
+                          { 'patient-name-inputbox--inline-dot': showInlineNameDot }
+                        ]"
+                      >
                         <input
                           ref="patientNameInput"
-                          v-model="form.patientName"
-                          class="patient-name-input"
+                          :value="form.patientName"
+                          :class="[
+                            'patient-name-input',
+                            {
+                              'patient-name-input--with-inline-dot': showInlineNameDot,
+                              'patient-name-input--with-clear': showInlineNameDot && form.patientName
+                            }
+                          ]"
                           type="text"
-                        placeholder="请输入姓名"
-                        @blur="markFieldTouched('patientName')"
-                        @input="markFieldTouched('patientName')"
-                      />
+                          placeholder="请输入姓名"
+                          @blur="markFieldTouched('patientName')"
+                          @input="handlePatientNameInput"
+                        />
+                        <button
+                          v-if="showInlineNameDot"
+                          class="patient-name-dot patient-name-dot--inline"
+                          type="button"
+                          aria-label="插入姓名间隔点"
+                          @mousedown.prevent
+                          @click="insertPatientNameDot"
+                        >
+                          ·
+                        </button>
                         <button
                           v-if="form.patientName"
                           class="patient-name-clear"
@@ -74,6 +100,7 @@
                         </button>
                       </div>
                       <button
+                        v-if="showSeparateNameDot"
                         class="patient-name-dot"
                         type="button"
                         aria-label="插入姓名间隔点"
@@ -83,7 +110,7 @@
                         ·
                       </button>
                     </div>
-                      <FormFieldError :message="fieldError('patientName')" />
+                      <FormFieldError :message="fieldErrorText('patientName')" />
                     </div>
                   </div>
                   <div class="form-field form-field--gender" role="radiogroup" aria-labelledby="patient-gender-label">
@@ -101,19 +128,58 @@
                       </label>
                     </div>
                   </div>
-                  <label ref="ageFieldRef" :class="['form-field', { 'form-field--invalid': fieldError('age') }]">
+                  <label ref="ageFieldRef" :class="['form-field', fieldFieldClass('age')]">
                     <span class="form-field__label"><em>*</em>年龄</span>
                     <div class="form-field__control">
-                      <input
-                        v-model="form.age"
-                        :class="['jh-input-field', 'jh-input-field--sm', { 'jh-input-field--error': fieldError('age'), 'is-field-error-flash': fieldError('age') }]"
-                        type="text"
-                        inputmode="numeric"
-                        placeholder="请输入年龄（0-120）"
-                        @blur="markFieldTouched('age')"
-                        @input="markFieldTouched('age')"
-                      />
-                      <FormFieldError :message="fieldError('age')" />
+                      <div
+                        :class="[
+                          'age-control',
+                          {
+                            'age-control--error': fieldErrorType('age') === 'error',
+                            'age-control--warning': fieldErrorType('age') === 'warning'
+                          }
+                        ]"
+                      >
+                        <input
+                          v-model="form.age"
+                          :class="['jh-input-field', 'jh-input-field--sm', fieldInputClass('age')]"
+                          type="text"
+                          inputmode="numeric"
+                          :placeholder="agePlaceholder"
+                          @blur="markFieldTouched('age')"
+                          @input="markFieldTouched('age')"
+                        />
+                        <div
+                          ref="ageUnitSelectRef"
+                          :class="['age-unit-select', { 'age-unit-select--open': ageUnitOpen }]"
+                          aria-label="年龄单位"
+                        >
+                          <button
+                            class="age-unit-select__trigger"
+                            type="button"
+                            aria-haspopup="listbox"
+                            :aria-expanded="ageUnitOpen"
+                            @click.stop="ageUnitOpen = !ageUnitOpen"
+                          >
+                            <span>{{ currentAgeUnitLabel }}</span>
+                            <i class="age-unit-select__chevron" aria-hidden="true"></i>
+                          </button>
+                          <div v-if="ageUnitOpen" class="age-unit-select__menu" role="listbox">
+                            <button
+                              v-for="option in ageUnitOptions"
+                              :key="option.value"
+                              :class="{ active: form.ageUnit === option.value }"
+                              type="button"
+                              role="option"
+                              :aria-selected="form.ageUnit === option.value"
+                              @click="selectAgeUnit(option.value)"
+                            >
+                              {{ option.label }}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                      <FormFieldError :message="fieldErrorText('age')" :variant="fieldErrorType('age') || 'error'" />
                     </div>
                   </label>
                   <label class="form-field">
@@ -123,12 +189,12 @@
                       <span>kg</span>
                     </div>
                   </label>
-                  <label ref="phoneFieldRef" :class="['form-field', { 'form-field--invalid': fieldError('phone') }]">
+                  <label ref="phoneFieldRef" :class="['form-field', fieldFieldClass('phone')]">
                     <span class="form-field__label"><em>*</em>手机号码</span>
                     <div class="form-field__control">
                       <input
                         v-model="form.phone"
-                        :class="['jh-input-field', 'jh-input-field--sm', { 'jh-input-field--error': fieldError('phone'), 'is-field-error-flash': fieldError('phone') }]"
+                        :class="['jh-input-field', 'jh-input-field--sm', fieldInputClass('phone')]"
                         type="text"
                         maxlength="11"
                         inputmode="numeric"
@@ -137,15 +203,15 @@
                         @blur="markFieldTouched('phone')"
                         @input="markFieldTouched('phone')"
                       />
-                      <FormFieldError :message="fieldError('phone')" />
+                      <FormFieldError :message="fieldErrorText('phone')" :variant="fieldErrorType('phone') || 'error'" />
                     </div>
                   </label>
-                  <label ref="idCardFieldRef" :class="['form-field', { 'form-field--invalid': fieldError('idCard') }]">
+                  <label ref="idCardFieldRef" :class="['form-field', fieldFieldClass('idCard')]">
                     <span class="form-field__label"><em>*</em>用药人身份证</span>
                     <div class="form-field__control">
                       <input
                         v-model="form.idCard"
-                        :class="['jh-input-field', 'jh-input-field--sm', { 'jh-input-field--error': fieldError('idCard'), 'is-field-error-flash': fieldError('idCard') }]"
+                        :class="['jh-input-field', 'jh-input-field--sm', fieldInputClass('idCard')]"
                         type="text"
                         maxlength="18"
                         placeholder="请输入身份证号码"
@@ -153,7 +219,7 @@
                         @blur="markFieldTouched('idCard')"
                         @input="markFieldTouched('idCard')"
                       />
-                      <FormFieldError :message="fieldError('idCard')" />
+                      <FormFieldError :message="fieldErrorText('idCard')" :variant="fieldErrorType('idCard') || 'error'" />
                     </div>
                   </label>
                   <label v-if="isChildUnderSix" ref="guardianNameFieldRef" :class="['form-field', { 'form-field--invalid': fieldError('guardianName') }]">
@@ -165,19 +231,19 @@
                         type="text"
                         placeholder="请输入姓名"
                       />
-                      <FormFieldError :message="fieldError('guardianName')" />
+                      <FormFieldError :message="fieldErrorText('guardianName')" />
                     </div>
                   </label>
-                  <label v-if="isChildUnderSix" ref="guardianIdCardFieldRef" :class="['form-field', { 'form-field--invalid': fieldError('guardianIdCard') }]">
+                  <label v-if="isChildUnderSix" ref="guardianIdCardFieldRef" :class="['form-field', fieldFieldClass('guardianIdCard')]">
                     <span class="form-field__label"><em>*</em>监护人身份证</span>
                     <div class="form-field__control">
                       <input
                         v-model="form.guardianIdCard"
-                        :class="['jh-input-field', 'jh-input-field--sm', { 'jh-input-field--error': fieldError('guardianIdCard'), 'is-field-error-flash': fieldError('guardianIdCard') }]"
+                        :class="['jh-input-field', 'jh-input-field--sm', fieldInputClass('guardianIdCard')]"
                         type="text"
                         placeholder="请输入身份证号码"
                       />
-                      <FormFieldError :message="fieldError('guardianIdCard')" />
+                      <FormFieldError :message="fieldErrorText('guardianIdCard')" :variant="fieldErrorType('guardianIdCard') || 'error'" />
                     </div>
                   </label>
                 </div>
@@ -194,6 +260,7 @@
                       :max-images="maxProofImages"
                       :max-file-size="maxProofFileSize"
                       :error="fieldError('proof')"
+                      :show-inline-error="validationVariant !== 'b'"
                       @select-voice="handleProofVoice"
                       @select-images="handleProofImages"
                       @remove-voice="removeProofVoice"
@@ -214,6 +281,7 @@
                     v-model:detail="form.allergyDetail"
                     detail-placeholder="请输入过敏史"
                     :error="fieldError('allergyDetail')"
+                    :show-inline-error="validationVariant !== 'b'"
                     @detail-blur="markFieldTouched('allergyDetail')"
                     @detail-input="markFieldTouched('allergyDetail')"
                   />
@@ -225,6 +293,7 @@
                     v-model:detail="form.liverDetail"
                     detail-placeholder="请输入肝功能异常"
                     :error="fieldError('liverDetail')"
+                    :show-inline-error="validationVariant !== 'b'"
                     @detail-blur="markFieldTouched('liverDetail')"
                     @detail-input="markFieldTouched('liverDetail')"
                   />
@@ -236,6 +305,7 @@
                     v-model:detail="form.kidneyDetail"
                     detail-placeholder="请输入肾功能异常"
                     :error="fieldError('kidneyDetail')"
+                    :show-inline-error="validationVariant !== 'b'"
                     @detail-blur="markFieldTouched('kidneyDetail')"
                     @detail-input="markFieldTouched('kidneyDetail')"
                   />
@@ -270,6 +340,7 @@
               v-model:combo-enabled="comboMedicineEnabled"
               :diagnosis-cards="diagnosisCards"
               :unlinked-medicine-prompts="unlinkedMedicinePrompts"
+              :show-inline-link-prompt="useInlineDiagnosisLink"
               :show-combo-medicine-option="showComboMedicineOption"
               :combination-recommendations="combinationRecommendations"
               :dropdown-options="diagnosisDropdownOptions"
@@ -277,6 +348,7 @@
               :show-dropdown="showDiagnosisOptions"
               :is-common-dropdown="showCommonDiagnosisDropdown"
               :error="fieldError('diagnoses')"
+              :show-inline-error="validationVariant !== 'b'"
               :is-disabled="isDiagnosisDisabled"
               @toggle="toggleDiagnosis"
               @remove="removeDiagnosis"
@@ -296,6 +368,7 @@
               :active-unit-id="activeUnitMedicineId"
               :placeholder="medicinePlaceholder"
               :error="fieldError('medicines')"
+              :show-inline-error="validationVariant !== 'b'"
               :type-label="medicineTypeLabel"
               @focus="openMedicineDropdown"
               @blur="markFieldTouched('medicines')"
@@ -341,9 +414,23 @@
       </section>
     </main>
 
+    <TopFormNoticeStack v-if="validationVariant === 'b'" :notices="topNotices" />
+    <SystemServiceNotice v-if="validationVariant === 'a'" :message="systemNoticeMessage" />
+
     <Teleport to="body">
       <div v-if="showConsentDialog" class="consent-confirm-overlay" @click.self="closeConsentDialog">
-        <section class="consent-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="consent-confirm-title">
+        <section
+          ref="consentDialogRef"
+          :class="[
+            'consent-confirm-dialog',
+            { 'consent-confirm-dialog--centered': consentDialogCentered }
+          ]"
+          :style="consentDialogStyle"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="consent-confirm-title"
+          @click.stop
+        >
           <header class="consent-confirm-dialog__header">
             <h2 id="consent-confirm-title">互联网问诊知情同意书</h2>
             <button class="consent-confirm-dialog__close" type="button" aria-label="关闭" @click="closeConsentDialog">×</button>
@@ -351,7 +438,12 @@
           <div class="consent-confirm-dialog__body">
             请确认您是否已经阅读并同意 <a href="#" @click.prevent>《互联网问诊知情同意书》</a>
           </div>
-          <footer class="consent-confirm-dialog__footer">
+          <footer
+            :class="[
+              'consent-confirm-dialog__footer',
+              { 'consent-confirm-dialog__footer--center': consentDialogCentered }
+            ]"
+          >
             <Button variant="outline-secondary" size="md" @click="closeConsentDialog">取消</Button>
             <Button variant="primary" size="md" @click="agreeAndSubmit">同意</Button>
           </footer>
@@ -376,6 +468,7 @@
       </div>
 
       <DiagnosisConfirmDialog
+        v-if="useDialogDiagnosisLink"
         v-model="showConfirmDialog"
         :anchor-el="submitButtonRef"
         :groups="diagnosisConfirmGroups"
@@ -393,6 +486,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { ArrowLeft } from "@element-plus/icons-vue";
+import { ElMessage } from "element-plus";
 import { Button } from "@jiahong/ui";
 import FormFieldError from "@/components/quick-consult/FormFieldError.vue";
 import ProofUploadPanel from "@/components/quick-consult/ProofUploadPanel.vue";
@@ -401,6 +495,9 @@ import ToggleField from "@/components/quick-consult/ToggleField.vue";
 import DiagnosisConfirmDialog from "@/components/quick-consult/DiagnosisConfirmDialog.vue";
 import DiagnosisSelectPanel from "@/components/quick-consult/DiagnosisSelectPanel.vue";
 import MedicineSelectPanel from "@/components/quick-consult/MedicineSelectPanel.vue";
+import SystemServiceNotice from "@/components/quick-consult/SystemServiceNotice.vue";
+import TopFormNoticeStack from "@/components/quick-consult/TopFormNoticeStack.vue";
+import { collectFieldNotices, useTopFormNotices } from "@/composables/useTopFormNotices";
 import { parseIdCardNumber, recognizeIdCardFromImage } from "@/utils/idCard";
 import { createEmptyFormErrors, validateQuickConsultForm } from "@/utils/quickConsultValidation";
 import {
@@ -418,10 +515,51 @@ import {
   quickConsultMedicines
 } from "@/data/quickConsultMedicines";
 import { useConsultStore } from "@/stores/consult";
+import { normalizePatientNameDots } from "@/utils/patientNameInput";
+
+const props = defineProps({
+  diagnosisLinkVariant: {
+    type: String,
+    default: "",
+    validator: (value) => ["", "a", "b"].includes(value)
+  },
+  validationVariant: {
+    type: String,
+    default: "",
+    validator: (value) => ["", "a", "b"].includes(value)
+  },
+  abMode: {
+    type: Boolean,
+    default: false
+  },
+  formAbMode: {
+    type: Boolean,
+    default: false
+  },
+  consentVariant: {
+    type: String,
+    default: "",
+    validator: (value) => ["", "a", "b"].includes(value)
+  },
+  consentAbMode: {
+    type: Boolean,
+    default: false
+  },
+  patientNameDotVariant: {
+    type: String,
+    default: "",
+    validator: (value) => ["", "a", "b", "c"].includes(value)
+  }
+});
+
+const emit = defineEmits(["back"]);
 
 const router = useRouter();
 const route = useRoute();
 const consultStore = useConsultStore();
+const { notices: topNotices, pushNotices, clearNotices } = useTopFormNotices();
+const systemNoticeMessage = ref("");
+let systemNoticeTimer;
 const showConfirmDialog = ref(false);
 const showConsentDialog = ref(false);
 const showDiagnosisDropdown = ref(false);
@@ -454,11 +592,35 @@ const kidneyFieldRef = ref(null);
 const diagnosisFieldRef = ref(null);
 const medicineFieldRef = ref(null);
 const submitButtonRef = ref(null);
+const consentDialogRef = ref(null);
+const consentDialogStyle = ref({});
 const confirmDiagnosisSelections = reactive({});
+const CONSENT_DIALOG_GAP = 4;
+const CONSENT_VIEWPORT_PADDING = 20;
 const maxProofImages = 5;
 const maxProofFileSize = 5 * 1024 * 1024;
 const maxDiagnoses = 5;
 const maxMedicines = 5;
+
+const useInlineDiagnosisLink = computed(() => {
+  if (props.diagnosisLinkVariant === "a") return true;
+  if (props.diagnosisLinkVariant === "b") return false;
+  return true;
+});
+
+const useDialogDiagnosisLink = computed(() => {
+  if (props.diagnosisLinkVariant === "a") return false;
+  if (props.diagnosisLinkVariant === "b") return true;
+  return true;
+});
+
+const consentDialogCentered = computed(() => props.consentVariant === "a");
+
+const patientNameDotMode = computed(() => props.patientNameDotVariant || "a");
+
+const showSeparateNameDot = computed(() => patientNameDotMode.value === "a");
+
+const showInlineNameDot = computed(() => patientNameDotMode.value === "b" && patientNameFocused.value);
 
 const consultType = computed(() => route.query.type || consultStore.consultType || "western");
 const consultSource = computed(() => route.query.source || consultStore.consultSource || "text");
@@ -481,6 +643,13 @@ const pregnancyOptions = [
   { label: "哺乳期", value: "lactating" }
 ];
 
+const ageUnitOpen = ref(false);
+const ageUnitSelectRef = ref(null);
+const ageUnitOptions = [
+  { label: "岁", value: "year" },
+  { label: "月", value: "month" }
+];
+
 const commonDiagnoses = quickConsultDiagnoses;
 
 const medicineOptions = quickConsultMedicines;
@@ -489,6 +658,7 @@ const form = reactive({
   patientName: "",
   gender: "male",
   age: "",
+  ageUnit: "year",
   weight: "",
   phone: "",
   idCard: "",
@@ -513,11 +683,29 @@ const parsedAge = computed(() => {
   const raw = String(form.age).trim();
   if (!/^(0|[1-9]\d*)$/.test(raw)) return null;
   const age = Number(raw);
+  if (form.ageUnit === "month") {
+    if (age < 1 || age > 11) return null;
+    return age;
+  }
   if (age < 0 || age > 120) return null;
   return age;
 });
 
-const isChildUnderSix = computed(() => parsedAge.value !== null && parsedAge.value < 6);
+const agePlaceholder = computed(() => (form.ageUnit === "month" ? "请输入月龄（1-11）" : "请输入年龄（0-120）"));
+const ageLabel = computed(() => {
+  const age = String(form.age).trim();
+  if (!age) return "";
+  return `${age}${form.ageUnit === "month" ? "月" : "岁"}`;
+});
+
+const currentAgeUnitLabel = computed(
+  () => ageUnitOptions.find((option) => option.value === form.ageUnit)?.label || "岁"
+);
+
+const isChildUnderSix = computed(() => {
+  if (parsedAge.value === null) return false;
+  return form.ageUnit === "month" || parsedAge.value < 6;
+});
 
 const patientBaseComplete = computed(() => {
   return Boolean(form.patientName.trim() && form.gender && parsedAge.value !== null);
@@ -604,26 +792,38 @@ const unlinkedMedicinePrompts = computed(() =>
   buildUnlinkedMedicinePrompts(unlinkedMedicines.value, { isDiagnosisDisabled })
 );
 
-const diagnosisConfirmGroups = computed(() =>
-  form.medicines
+const diagnosisConfirmGroups = computed(() => {
+  const buildGroup = (medicine, rule) => ({
+    id: `${rule.id}-${medicine.id}`,
+    ruleId: rule.id,
+    medicineId: medicine.id,
+    medicineName: medicine.name,
+    options: rule.diagnoses.map((label) => ({
+      label,
+      disabled: (rule.disabledDiagnoses || []).includes(label) || isDiagnosisDisabled(label)
+    }))
+  });
+
+  if (props.diagnosisLinkVariant === "b") {
+    return form.medicines
+      .map((medicine) => {
+        const rule = findMedicineDiagnosisRule(medicine.name);
+        return rule ? buildGroup(medicine, rule) : null;
+      })
+      .filter(Boolean)
+      .slice(0, maxMedicines);
+  }
+
+  return form.medicines
     .map((medicine) => {
       const rule = findMedicineDiagnosisRule(medicine.name);
       if (!rule) return null;
       if (isMedicineDiagnosisMatched(medicine, form.diagnoses)) return null;
-      return {
-        id: `${rule.id}-${medicine.id}`,
-        ruleId: rule.id,
-        medicineId: medicine.id,
-        medicineName: medicine.name,
-        options: rule.diagnoses.map((label) => ({
-          label,
-          disabled: (rule.disabledDiagnoses || []).includes(label) || isDiagnosisDisabled(label)
-        }))
-      };
+      return buildGroup(medicine, rule);
     })
     .filter(Boolean)
-    .slice(0, maxMedicines)
-);
+    .slice(0, maxMedicines);
+});
 const canConfirmDiagnoses = computed(() => {
   if (diagnosisConfirmGroups.value.length === 0) return true;
   return diagnosisConfirmGroups.value.every((group) => Boolean(confirmDiagnosisSelections[group.id]));
@@ -637,6 +837,10 @@ const filteredMedicineOptions = computed(() => {
 });
 
 function toggleDiagnosis(tag) {
+  if (props.validationVariant === "a" && tag === "抑郁发作") {
+    showSystemNotice("该疾病所属科室暂无医生");
+    return;
+  }
   if (isDiagnosisDisabled(tag)) return;
   if (form.diagnoses.includes(tag)) {
     removeDiagnosis(tag);
@@ -665,6 +869,10 @@ function removeDiagnosis(tag) {
 }
 
 function linkMedicinesToDiagnosis(medicineIds, diagnosis) {
+  if (props.validationVariant === "a" && diagnosis === "抑郁发作") {
+    showSystemNotice("该疾病所属科室暂无医生");
+    return;
+  }
   if (isDiagnosisDisabled(diagnosis)) return;
   const ids = Array.isArray(medicineIds) ? medicineIds : [medicineIds];
   const validMedicines = ids
@@ -722,6 +930,10 @@ function isConfirmDiagnosisSelected(groupId, label) {
 function toggleConfirmDiagnosis(groupId, label) {
   const group = diagnosisConfirmGroups.value.find((item) => item.id === groupId);
   const option = group?.options.find((item) => item.label === label);
+  if (props.validationVariant === "a" && label === "抑郁发作") {
+    showSystemNotice("该疾病所属科室暂无医生");
+    return;
+  }
   if (!group || option?.disabled) return;
   if (confirmDiagnosisSelections[groupId] === label) {
     delete confirmDiagnosisSelections[groupId];
@@ -738,6 +950,9 @@ function closeDiagnosisDropdown(event) {
     showMedicineDropdown.value = false;
     medicineFocused.value = false;
     activeUnitMedicineId.value = null;
+  }
+  if (!event.target.closest(".age-unit-select")) {
+    ageUnitOpen.value = false;
   }
 }
 
@@ -771,6 +986,17 @@ function addMedicine(option) {
   showMedicineDropdown.value = false;
   medicineFocused.value = false;
   showDiagnosisDropdown.value = false;
+}
+
+function setAgeUnit(unit) {
+  if (!ageUnitOptions.some((option) => option.value === unit)) return;
+  form.ageUnit = unit;
+  markFieldTouched("age");
+}
+
+function selectAgeUnit(unit) {
+  setAgeUnit(unit);
+  ageUnitOpen.value = false;
 }
 
 function medicineTypeLabel(type) {
@@ -815,6 +1041,15 @@ function focusPatientNameInput() {
   requestAnimationFrame(() => {
     patientNameInput.value?.focus();
   });
+}
+
+function handlePatientNameInput(event) {
+  let value = event.target.value;
+  if (patientNameDotMode.value === "c") {
+    value = normalizePatientNameDots(value);
+  }
+  form.patientName = value;
+  markFieldTouched("patientName");
 }
 
 function insertPatientNameDot() {
@@ -883,6 +1118,7 @@ function fillConsultTemplate() {
     patientName: "林小宝",
     gender: "male",
     age: "4",
+    ageUnit: "year",
     weight: "16",
     phone: "13800138000",
     idCard: "420106202206012021",
@@ -934,6 +1170,7 @@ function applyIdCardRecognition(result) {
     if (parsed) {
       form.gender = parsed.gender;
       form.age = parsed.age;
+      form.ageUnit = "year";
     }
   }
   if (result.gender) {
@@ -941,6 +1178,7 @@ function applyIdCardRecognition(result) {
   }
   if (result.age) {
     form.age = result.age;
+    form.ageUnit = "year";
   }
 }
 
@@ -989,7 +1227,7 @@ function markFieldTouched(key) {
 }
 
 function markAllFieldsTouched() {
-  Object.keys(touchedFields).forEach((key) => {
+  Object.keys(formErrors).forEach((key) => {
     touchedFields[key] = true;
   });
 }
@@ -1026,14 +1264,42 @@ function fieldHasInput(key) {
 }
 
 function shouldShowFieldError(key) {
-  if (!formErrors[key]) return false;
+  if (!formErrors[key]?.message) return false;
   if (submitAttempted.value) return true;
   if (touchedFields[key]) return true;
   return fieldHasInput(key);
 }
 
 function fieldError(key) {
-  return shouldShowFieldError(key) ? formErrors[key] : "";
+  return shouldShowFieldError(key) ? formErrors[key].message : "";
+}
+
+function fieldErrorText(key) {
+  if (props.validationVariant === "b") return "";
+  return fieldError(key);
+}
+
+function fieldErrorType(key) {
+  return shouldShowFieldError(key) ? formErrors[key].type : "";
+}
+
+function fieldFieldClass(key) {
+  const type = fieldErrorType(key);
+  return {
+    "form-field--invalid": type === "error",
+    "form-field--warning": type === "warning"
+  };
+}
+
+function fieldInputClass(key) {
+  const message = fieldError(key);
+  const type = fieldErrorType(key);
+  return {
+    "jh-input-field--error": message && type === "error",
+    "jh-input-field--warning": message && type === "warning",
+    "is-field-error-flash": message && type === "error",
+    "is-field-warning-flash": message && type === "warning"
+  };
 }
 
 watchEffect(() => {
@@ -1042,7 +1308,8 @@ watchEffect(() => {
     proofVoice: proofVoice.value,
     proofImages: proofImages.value,
     isChildUnderSix: isChildUnderSix.value,
-    canEditMedicine: canEditMedicine.value
+    canEditMedicine: canEditMedicine.value,
+    skipDiagnosesValidation: props.diagnosisLinkVariant === "b"
   });
   Object.assign(formErrors, result.errors);
 });
@@ -1068,6 +1335,10 @@ watch(
   }
 );
 
+watch(showConsentDialog, (open) => {
+  if (open) scheduleConsentDialogPosition();
+});
+
 watch(
   () => form.agreed,
   () => {
@@ -1081,7 +1352,8 @@ function runFormValidation() {
     proofVoice: proofVoice.value,
     proofImages: proofImages.value,
     isChildUnderSix: isChildUnderSix.value,
-    canEditMedicine: canEditMedicine.value
+    canEditMedicine: canEditMedicine.value,
+    skipDiagnosesValidation: props.diagnosisLinkVariant === "b"
   });
   Object.assign(formErrors, result.errors);
   return result.valid;
@@ -1104,10 +1376,220 @@ const fieldRefMap = {
 
 async function scrollToFirstError() {
   await nextTick();
-  const firstKey = Object.keys(formErrors).find((key) => formErrors[key] && shouldShowFieldError(key));
+  const firstKey = Object.keys(formErrors).find((key) => formErrors[key].message && shouldShowFieldError(key));
   const targetRef = firstKey ? fieldRefMap[firstKey]?.value : null;
   const target = targetRef?.sectionRef ?? targetRef?.$el ?? targetRef;
   target?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+}
+
+function resolveAnchorElement(anchor) {
+  if (!anchor) return null;
+  return anchor.$el ?? anchor;
+}
+
+function updateConsentDialogPosition() {
+  const dialogElement = consentDialogRef.value;
+  if (!dialogElement) return;
+
+  if (consentDialogCentered.value) {
+    consentDialogStyle.value = {
+      left: "50%",
+      top: "50%",
+      right: "auto",
+      bottom: "auto",
+      transform: "translate(-50%, -50%)",
+      width: "562px",
+      maxWidth: `min(562px, calc(100vw - ${CONSENT_VIEWPORT_PADDING * 2}px))`
+    };
+    return;
+  }
+
+  const anchorElement = resolveAnchorElement(submitButtonRef.value);
+  if (!anchorElement) return;
+
+  const anchorRect = anchorElement.getBoundingClientRect();
+  const maxWidth = Math.min(562, window.innerWidth - CONSENT_VIEWPORT_PADDING * 2);
+  const right = Math.max(CONSENT_VIEWPORT_PADDING, window.innerWidth - anchorRect.right);
+  const bottom = Math.max(
+    CONSENT_VIEWPORT_PADDING,
+    window.innerHeight - anchorRect.top + CONSENT_DIALOG_GAP
+  );
+  const maxHeight = window.innerHeight - bottom - CONSENT_VIEWPORT_PADDING;
+
+  consentDialogStyle.value = {
+    left: "auto",
+    top: "auto",
+    transform: "none",
+    right: `${right}px`,
+    bottom: `${bottom}px`,
+    width: `${maxWidth}px`,
+    maxHeight: `${Math.max(180, maxHeight)}px`
+  };
+}
+
+function scheduleConsentDialogPosition() {
+  nextTick(() => {
+    updateConsentDialogPosition();
+    nextTick(updateConsentDialogPosition);
+  });
+}
+
+function handleConsentDialogViewportChange() {
+  if (showConsentDialog.value) updateConsentDialogPosition();
+}
+
+function focusNextEnterTarget(currentTarget, rootElement) {
+  const orderedSelectors = [
+    ".patient-name-input",
+    ".age-control input",
+    'input[placeholder="请输入体重"]',
+    'input[placeholder="请输入手机号码"]',
+    'input[placeholder="请输入身份证号码"]',
+    'input[placeholder="请输入姓名"]',
+    ".toggle-field__detail",
+    ".diagnosis-panel__input",
+    ".medicine-panel__input",
+    'input[placeholder="请输入备注信息，最多30字"]',
+    ".quick-consult-card__submit-anchor button"
+  ];
+  const root = rootElement ?? document;
+  const targets = orderedSelectors
+    .flatMap((selector) => Array.from(root.querySelectorAll(selector)))
+    .filter((element, index, all) => all.indexOf(element) === index)
+    .filter((element) => {
+      const style = window.getComputedStyle(element);
+      return (
+        !element.disabled &&
+        element.offsetParent !== null &&
+        style.visibility !== "hidden" &&
+        style.display !== "none"
+      );
+    });
+  const currentIndex = targets.indexOf(currentTarget);
+  const nextTarget = currentIndex >= 0 ? targets[currentIndex + 1] : targets[0];
+  nextTarget?.focus?.();
+}
+
+function handleEnterAdvance(event) {
+  const target = event.target;
+  if (!(target instanceof HTMLInputElement)) return;
+  if (target.type === "file" || target.type === "radio" || target.type === "checkbox") return;
+  event.preventDefault();
+  focusNextEnterTarget(target, event.currentTarget);
+}
+
+function handleBack() {
+  if (props.abMode) {
+    emit("back");
+    return;
+  }
+  router.push("/");
+}
+
+function showSystemNotice(message) {
+  if (props.validationVariant !== "a") return;
+  window.clearTimeout(systemNoticeTimer);
+  systemNoticeMessage.value = message;
+  systemNoticeTimer = window.setTimeout(() => {
+    systemNoticeMessage.value = "";
+  }, 3000);
+}
+
+function pushTopValidationNotices() {
+  const items = collectFieldNotices(formErrors, shouldShowFieldError);
+  clearNotices();
+  pushNotices(items);
+}
+
+function setupConsentAbDemoState() {
+  fillConsultTemplate();
+
+  const escitalopram = medicineOptions.find((item) => item.name === "草酸艾司西酞普兰片");
+  const coldMedicine = medicineOptions.find((item) => item.name === "感冒灵胶囊");
+  const baseId = Date.now();
+
+  form.diagnoses = ["认知障碍", "急性鼻咽炎 [感冒]"];
+  form.medicines = [
+    escitalopram ? { ...createMedicineRecord(escitalopram), id: baseId, linkedDiagnosis: "认知障碍" } : null,
+    coldMedicine ? { ...createMedicineRecord(coldMedicine), id: baseId + 1, linkedDiagnosis: "急性鼻咽炎 [感冒]" } : null
+  ].filter(Boolean);
+  form.agreed = false;
+
+  showValidation.value = false;
+  submitAttempted.value = false;
+  consentError.value = "";
+}
+
+function setupFormValidationAbDemoState() {
+  removeProofVoice();
+  clearProofImages();
+
+  Object.assign(form, {
+    patientName: "林晓晓",
+    gender: "female",
+    age: "24",
+    ageUnit: "year",
+    weight: "",
+    phone: "12345",
+    idCard: "",
+    guardianName: "",
+    guardianIdCard: "",
+    allergy: "no",
+    allergyDetail: "",
+    liverAbnormal: "yes",
+    liverDetail: "",
+    kidneyAbnormal: "no",
+    kidneyDetail: "",
+    pregnancy: "none",
+    diagnosisKeyword: "",
+    diagnoses: [],
+    medicineKeyword: "",
+    medicines: [],
+    remark: "",
+    agreed: false
+  });
+
+  proofVoice.value = {
+    id: `template-voice-${Date.now()}`,
+    name: "template-proof.webm",
+    file: new File([new Blob(["mock-audio"])], "template-proof.webm", { type: "audio/webm" }),
+    duration: 8
+  };
+
+  const escitalopram = medicineOptions.find((item) => item.name === "草酸艾司西酞普兰片");
+  if (escitalopram) {
+    form.medicines.push({
+      ...createMedicineRecord(escitalopram),
+      id: Date.now(),
+      linkedDiagnosis: null
+    });
+  }
+
+  showValidation.value = false;
+  submitAttempted.value = false;
+  consentError.value = "";
+  Object.assign(formErrors, createEmptyFormErrors());
+  Object.keys(touchedFields).forEach((key) => {
+    delete touchedFields[key];
+  });
+  clearNotices();
+  systemNoticeMessage.value = "";
+}
+
+function setupAbDemoState() {
+  fillConsultTemplate();
+
+  const escitalopram = medicineOptions.find((item) => item.name === "草酸艾司西酞普兰片");
+  const coldMedicine = medicineOptions.find((item) => item.name === "感冒灵胶囊");
+  const clarithromycin = medicineOptions.find((item) => item.name === "克拉霉素胶囊");
+  const baseId = Date.now();
+
+  form.diagnoses = ["认知障碍", "急性鼻咽炎 [感冒]"];
+  form.medicines = [
+    escitalopram ? { ...createMedicineRecord(escitalopram), id: baseId, linkedDiagnosis: "认知障碍" } : null,
+    coldMedicine ? { ...createMedicineRecord(coldMedicine), id: baseId + 1, linkedDiagnosis: "急性鼻咽炎 [感冒]" } : null,
+    clarithromycin ? { ...createMedicineRecord(clarithromycin), id: baseId + 2, linkedDiagnosis: null } : null
+  ].filter(Boolean);
 }
 
 function handleSubmit() {
@@ -1115,21 +1597,57 @@ function handleSubmit() {
   showValidation.value = true;
   markAllFieldsTouched();
   consentError.value = "";
+
+  if (useDialogDiagnosisLink.value && props.diagnosisLinkVariant === "b" && diagnosisConfirmGroups.value.length > 0) {
+    const basicResult = validateQuickConsultForm({
+      form,
+      proofVoice: proofVoice.value,
+      proofImages: proofImages.value,
+      isChildUnderSix: isChildUnderSix.value,
+      canEditMedicine: canEditMedicine.value,
+      skipDiagnosesValidation: true
+    });
+    Object.assign(formErrors, basicResult.errors);
+    if (!basicResult.valid) {
+      if (props.validationVariant === "b") {
+        pushTopValidationNotices();
+      }
+      scrollToFirstError();
+      return;
+    }
+    openConfirmDialog();
+    return;
+  }
+
   const isValid = runFormValidation();
   if (!isValid) {
+    if (props.validationVariant === "b") {
+      pushTopValidationNotices();
+    }
+    scrollToFirstError();
+    return;
+  }
+  if (diagnosisConfirmGroups.value.length > 0) {
+    if (useDialogDiagnosisLink.value) {
+      openConfirmDialog();
+      return;
+    }
+    ElMessage.warning("请为每个药品选择对应的疾病信息");
+    markFieldTouched("diagnoses");
     scrollToFirstError();
     return;
   }
   if (!form.agreed) {
-    consentError.value = "请先阅读并同意《互联网问诊知情同意书》";
-    showConsentDialog.value = true;
-    return;
-  }
-  if (diagnosisConfirmGroups.value.length > 0) {
-    openConfirmDialog();
+    openConsentDialog();
     return;
   }
   goTextConsult();
+}
+
+function openConsentDialog() {
+  consentError.value = "请先阅读并同意《互联网问诊知情同意书》";
+  showConsentDialog.value = true;
+  scheduleConsentDialogPosition();
 }
 
 function agreeAndSubmit() {
@@ -1145,10 +1663,6 @@ function agreeAndSubmit() {
   }
   form.agreed = true;
   showConsentDialog.value = false;
-  if (diagnosisConfirmGroups.value.length > 0) {
-    openConfirmDialog();
-    return;
-  }
   goTextConsult();
 }
 
@@ -1172,6 +1686,10 @@ function confirmDiagnosesAndSubmit() {
     }
   });
   resetConfirmDiagnosisSelections();
+  if (!form.agreed) {
+    openConsentDialog();
+    return;
+  }
   goTextConsult();
 }
 
@@ -1180,12 +1698,19 @@ function genderLabel(gender) {
 }
 
 function goTextConsult() {
+  if (props.abMode) {
+    showConfirmDialog.value = false;
+    ElMessage.info("AB 测试中暂不提交问诊");
+    return;
+  }
   showConfirmDialog.value = false;
   consultStore.setVisitInfo({
     patientName: form.patientName.trim(),
     gender: form.gender,
     genderLabel: genderLabel(form.gender),
     age: String(form.age).trim(),
+    ageUnit: form.ageUnit,
+    ageLabel: ageLabel.value,
     weight: String(form.weight).trim(),
     phone: form.phone.trim(),
     idCard: form.idCard.trim(),
@@ -1224,12 +1749,28 @@ watch(
 );
 
 onMounted(() => {
+  if (props.consentAbMode) {
+    setupConsentAbDemoState();
+    if (route.query.scene === "consent") {
+      nextTick(() => openConsentDialog());
+    }
+  } else if (props.formAbMode) {
+    setupFormValidationAbDemoState();
+  } else if (props.abMode && props.diagnosisLinkVariant) {
+    setupAbDemoState();
+  }
   document.addEventListener("mousedown", closeDiagnosisDropdown);
+  window.addEventListener("resize", handleConsentDialogViewportChange);
+  window.addEventListener("scroll", handleConsentDialogViewportChange, true);
 });
 
 onBeforeUnmount(() => {
   document.removeEventListener("mousedown", closeDiagnosisDropdown);
+  window.removeEventListener("resize", handleConsentDialogViewportChange);
+  window.removeEventListener("scroll", handleConsentDialogViewportChange, true);
+  window.clearTimeout(systemNoticeTimer);
   clearProofImages();
+  clearNotices();
 });
 </script>
 
@@ -1288,6 +1829,7 @@ onBeforeUnmount(() => {
   color: rgba(0, 0, 0, 0.6);
   font-size: 14px;
   line-height: 22px;
+  white-space: nowrap;
 }
 
 .quick-consult-page__main {
@@ -1333,6 +1875,8 @@ onBeforeUnmount(() => {
   font-size: 20px;
   font-weight: 400;
   line-height: 24px;
+  text-wrap: pretty;
+  word-break: auto-phrase;
 }
 
 .quick-consult-card__type {
@@ -1345,6 +1889,7 @@ onBeforeUnmount(() => {
   color: #006ef9;
   font-size: 14px;
   line-height: 22px;
+  white-space: nowrap;
   background: #d1e5fe;
 }
 
@@ -1395,6 +1940,7 @@ onBeforeUnmount(() => {
   font-size: 16px;
   font-weight: 400;
   line-height: 24px;
+  white-space: nowrap;
 }
 
 .form-section__title::before {
@@ -1450,6 +1996,8 @@ onBeforeUnmount(() => {
   color: rgba(0, 0, 0, 0.4);
   font-size: 14px;
   line-height: 22px;
+  text-wrap: pretty;
+  word-break: auto-phrase;
 }
 
 .form-grid {
@@ -1604,8 +2152,17 @@ onBeforeUnmount(() => {
   box-shadow: none !important;
 }
 
+.jh-input-field--warning {
+  border-color: #e37318 !important;
+  box-shadow: none !important;
+}
+
 .is-field-error-flash {
   animation: field-error-flash 0.9s ease;
+}
+
+.is-field-warning-flash {
+  animation: field-warning-flash 0.9s ease;
 }
 
 @keyframes field-error-flash {
@@ -1620,9 +2177,25 @@ onBeforeUnmount(() => {
   }
 }
 
+@keyframes field-warning-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(227, 115, 24, 0);
+  }
+
+  35%,
+  65% {
+    box-shadow: 0 0 0 3px rgba(227, 115, 24, 0.22);
+  }
+}
+
 .form-field--invalid .form-field__label,
 .form-section--invalid .form-section__title em {
   color: #d54941;
+}
+
+.form-field--warning .form-field__label {
+  color: #e37318;
 }
 
 .form-field--gender {
@@ -1725,9 +2298,13 @@ onBeforeUnmount(() => {
 .patient-name-control {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   width: 100%;
   min-width: 0;
+}
+
+.patient-name-control--single .patient-name-inputbox {
+  width: 100%;
 }
 
 .patient-name-inputbox {
@@ -1794,6 +2371,43 @@ onBeforeUnmount(() => {
   transform: translateY(-50%);
 }
 
+.patient-name-input--with-inline-dot {
+  padding-right: 42px;
+}
+
+.patient-name-input--with-inline-dot.patient-name-input--with-clear {
+  padding-right: 62px;
+}
+
+.patient-name-dot--inline {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  color: var(--jh-color-primary);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.patient-name-inputbox--inline-dot:has(.patient-name-clear) .patient-name-dot--inline {
+  right: 32px;
+}
+
+.patient-name-dot--inline:hover {
+  background: color-mix(in srgb, var(--jh-color-primary) 8%, transparent);
+}
+
 .patient-name-dot {
   display: inline-flex;
   flex: 0 0 auto;
@@ -1844,6 +2458,97 @@ onBeforeUnmount(() => {
   border-radius: 3px 0 0 3px;
 }
 
+.age-control {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 220px;
+}
+
+.age-control .jh-input-field {
+  flex: 1;
+  min-width: 0;
+  border-radius: 6px 0 0 6px;
+}
+
+.age-unit-select {
+  position: relative;
+  flex: 0 0 auto;
+  margin-left: -1px;
+}
+
+.age-control--error .age-unit-select__trigger {
+  border-color: #d54941;
+}
+
+.age-control--warning .age-unit-select__trigger {
+  border-color: #e37318;
+}
+
+.age-unit-select__trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  box-sizing: border-box;
+  width: 56px;
+  height: 32px;
+  padding: 0 8px 0 10px;
+  border: 1px solid #e5e8eb;
+  border-radius: 0 6px 6px 0;
+  color: rgba(0, 0, 0, 0.9);
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.age-unit-select--open .age-unit-select__trigger {
+  border-color: #006ef9;
+}
+
+.age-unit-select__chevron {
+  flex: 0 0 auto;
+  width: 0;
+  height: 0;
+  border-top: 4px solid rgba(0, 0, 0, 0.4);
+  border-right: 4px solid transparent;
+  border-left: 4px solid transparent;
+}
+
+.age-unit-select__menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 20;
+  min-width: 56px;
+  overflow: hidden;
+  border: 1px solid #e5e8eb;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 6px 16px -8px rgba(16, 42, 67, 0.08), 0 1px 3px rgba(16, 42, 67, 0.05);
+}
+
+.age-unit-select__menu button {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  border: 0;
+  color: rgba(0, 0, 0, 0.9);
+  font: inherit;
+  font-size: 14px;
+  line-height: 22px;
+  text-align: center;
+  background: #fff;
+  cursor: pointer;
+}
+
+.age-unit-select__menu button:hover,
+.age-unit-select__menu button.active {
+  color: #006ef9;
+  background: #eef6ff;
+}
+
 .visit-method-field {
   width: 100%;
   max-width: 154px;
@@ -1867,6 +2572,7 @@ onBeforeUnmount(() => {
   border-radius: 3px;
   font-size: 14px;
   line-height: 22px;
+  white-space: nowrap;
 }
 
 .quick-consult-card .medicine-panel {
@@ -2570,6 +3276,8 @@ onBeforeUnmount(() => {
 
 .consent-check__text {
   color: #3c4449;
+  text-wrap: pretty;
+  word-break: auto-phrase;
 }
 
 .consent-check a {
@@ -2615,18 +3323,21 @@ onBeforeUnmount(() => {
   position: fixed;
   inset: 0;
   z-index: 3100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background: rgba(0, 0, 0, 0.48);
+  background: rgba(122, 136, 152, 0.3);
 }
 
 .consent-confirm-dialog {
-  width: min(560px, calc(100vw - 40px));
-  border-radius: var(--jh-radius-md);
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  border-radius: 10px;
   background: var(--jh-color-bg-surface);
   box-shadow: 0 20px 48px rgba(19, 29, 43, 0.2);
+  overflow: hidden;
+}
+
+.consent-confirm-dialog--centered {
+  min-height: 206px;
 }
 
 .consent-confirm-dialog__header {
@@ -2642,6 +3353,8 @@ onBeforeUnmount(() => {
   font-size: 21px;
   font-weight: 400;
   line-height: 30px;
+  text-wrap: pretty;
+  word-break: auto-phrase;
 }
 
 .consent-confirm-dialog__close {
@@ -2660,6 +3373,8 @@ onBeforeUnmount(() => {
   color: var(--jh-color-text);
   font-size: 18px;
   line-height: 28px;
+  text-wrap: pretty;
+  word-break: auto-phrase;
 }
 
 .consent-confirm-dialog__body a {
@@ -2670,14 +3385,25 @@ onBeforeUnmount(() => {
 .consent-confirm-dialog__footer {
   display: flex;
   justify-content: flex-end;
-  gap: 14px;
+  gap: 20px;
   padding: 0 28px 28px;
+}
+
+.consent-confirm-dialog__footer--center {
+  justify-content: center;
+  gap: 17px;
+  padding-bottom: 24px;
 }
 
 .consent-confirm-dialog__footer :deep(.jh-btn) {
   width: 88px;
   height: 40px;
   font-size: 16px;
+}
+
+.consent-confirm-dialog__footer--center :deep(.jh-btn--outline-secondary) {
+  border-color: rgba(0, 0, 0, 0.15);
+  color: rgba(0, 0, 0, 0.6);
 }
 
 .id-card-scan-overlay {

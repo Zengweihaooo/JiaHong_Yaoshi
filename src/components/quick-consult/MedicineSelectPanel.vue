@@ -58,70 +58,75 @@
 
       <div v-if="canEdit && medicines.length" class="medicine-panel__list">
         <article v-for="item in medicines" :key="item.id" class="medicine-panel__row">
-          <span :class="['medicine-panel__type', `medicine-panel__type--${item.type}`]">
-            {{ typeLabelSpaced(item.type) }}
-          </span>
-          <div class="medicine-panel__name">{{ item.name }}</div>
-          <div class="medicine-panel__spec">{{ item.spec }}</div>
-
-          <div class="medicine-panel__qty">
-            <button
-              class="medicine-panel__qty-btn"
-              type="button"
-              :disabled="!canEdit || item.qty <= 1"
-              @click="emit('change-qty', item, -1)"
-            >
-              −
-            </button>
-            <span class="medicine-panel__qty-value">{{ item.qty }}</span>
-            <button
-              class="medicine-panel__qty-btn"
-              type="button"
-              :disabled="!canEdit"
-              @click="emit('change-qty', item, 1)"
-            >
-              +
-            </button>
+          <div class="medicine-panel__main">
+            <span :class="['medicine-panel__type', `medicine-panel__type--${item.type}`]">
+              {{ typeLabelSpaced(item.type) }}
+            </span>
+            <div class="medicine-panel__name">{{ item.name }}</div>
           </div>
 
-          <div class="medicine-panel__unit" @focusout="emit('unit-focusout', $event, item)">
-            <button
-              class="medicine-panel__unit-btn"
-              type="button"
-              :disabled="!canEdit"
-              :aria-expanded="activeUnitId === item.id"
-              @click="emit('toggle-unit', item)"
-            >
-              <span>{{ item.unit }}</span>
-              <span class="medicine-panel__unit-arrow" aria-hidden="true"></span>
-            </button>
-            <div v-if="activeUnitId === item.id" class="medicine-panel__unit-menu">
+          <div class="medicine-panel__controls">
+            <div class="medicine-panel__spec">{{ item.spec }}</div>
+
+            <div class="medicine-panel__qty">
               <button
-                v-for="unit in units"
-                :key="unit"
-                :class="['medicine-panel__unit-option', { 'is-active': item.unit === unit }]"
+                class="medicine-panel__qty-btn"
                 type="button"
-                @mousedown.prevent
-                @click="emit('select-unit', item, unit)"
+                :disabled="!canEdit || item.qty <= 1"
+                @click="emit('change-qty', item, -1)"
               >
-                {{ unit }}
+                −
+              </button>
+              <span class="medicine-panel__qty-value">{{ item.qty }}</span>
+              <button
+                class="medicine-panel__qty-btn"
+                type="button"
+                :disabled="!canEdit"
+                @click="emit('change-qty', item, 1)"
+              >
+                +
               </button>
             </div>
-          </div>
 
-          <button
-            class="medicine-panel__remove"
-            type="button"
-            aria-label="删除药品"
-            :disabled="!canEdit"
-            @click="emit('remove', item.id)"
-          >
-            ×
-          </button>
+            <div class="medicine-panel__unit" @focusout="emit('unit-focusout', $event, item)">
+              <button
+                class="medicine-panel__unit-btn"
+                type="button"
+                :disabled="!canEdit"
+                :aria-expanded="activeUnitId === item.id"
+                @click="emit('toggle-unit', item)"
+              >
+                <span>{{ item.unit }}</span>
+                <span class="medicine-panel__unit-arrow" aria-hidden="true"></span>
+              </button>
+              <div v-if="activeUnitId === item.id" class="medicine-panel__unit-menu">
+                <button
+                  v-for="unit in units"
+                  :key="unit"
+                  :class="['medicine-panel__unit-option', { 'is-active': item.unit === unit }]"
+                  type="button"
+                  @mousedown.prevent
+                  @click="emit('select-unit', item, unit)"
+                >
+                  {{ unit }}
+                </button>
+              </div>
+            </div>
+
+            <button
+              class="medicine-panel__remove"
+              type="button"
+              aria-label="删除药品"
+              :disabled="!canEdit"
+              @click="emit('remove', item.id)"
+            >
+              <span aria-hidden="true"></span>
+            </button>
+          </div>
         </article>
       </div>
 
-      <FormFieldError :message="error" />
+      <FormFieldError :message="showInlineError ? error : ''" />
     </div>
   </section>
 </template>
@@ -166,6 +171,10 @@ const props = defineProps({
   error: {
     type: String,
     default: ""
+  },
+  showInlineError: {
+    type: Boolean,
+    default: true
   },
   maxCount: {
     type: Number,
@@ -416,7 +425,7 @@ defineExpose({
 .medicine-panel__list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 0;
   min-width: 0;
   width: 100%;
   max-width: 688px;
@@ -424,19 +433,38 @@ defineExpose({
 
 .medicine-panel__row {
   box-sizing: border-box;
-  display: grid;
-  grid-template-columns: 65px minmax(0, 187px) minmax(0, 114px) auto 56px 28px;
-  column-gap: 8px;
+  display: flex;
   align-items: center;
-  height: 48px;
+  gap: 24px;
+  width: 100%;
+  max-width: 688px;
   min-width: 0;
+  height: 48px;
   padding: 0 10px;
   border-bottom: 4px solid #fff;
   background: #f5f9ff;
 }
 
+.medicine-panel__main,
+.medicine-panel__controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.medicine-panel__main {
+  flex: 0 0 318px;
+}
+
+.medicine-panel__controls {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .medicine-panel__type {
   display: inline-flex;
+  flex: 0 0 65px;
   align-items: center;
   justify-content: center;
   box-sizing: border-box;
@@ -465,9 +493,15 @@ defineExpose({
 }
 
 .medicine-panel__name {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  box-sizing: border-box;
+  width: 245px;
   min-width: 0;
+  height: 46px;
   padding: 0 8px;
-  color: #3c4449;
+  color: #697383;
   font-size: 14px;
   line-height: 22px;
   white-space: nowrap;
@@ -476,8 +510,14 @@ defineExpose({
 }
 
 .medicine-panel__spec {
-  min-width: 0;
-  padding: 0 10px;
+  display: flex;
+  flex: 0 0 114px;
+  align-items: center;
+  box-sizing: border-box;
+  width: 114px;
+  height: 40px;
+  padding: 9px 10px;
+  border-radius: 6px;
   color: #697383;
   font-size: 14px;
   line-height: 22px;
@@ -488,11 +528,11 @@ defineExpose({
 
 .medicine-panel__qty {
   display: inline-flex;
+  flex: 0 0 auto;
   align-items: center;
   justify-content: center;
   gap: 2px;
   box-sizing: border-box;
-  width: fit-content;
   padding: 2px;
   border: 1px solid #0091ea;
   border-radius: 4px;
@@ -515,6 +555,14 @@ defineExpose({
   cursor: pointer;
 }
 
+.medicine-panel__qty-btn:first-child {
+  border-radius: 2px 0 0 2px;
+}
+
+.medicine-panel__qty-btn:last-child {
+  border-radius: 0 2px 2px 0;
+}
+
 .medicine-panel__qty-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -532,7 +580,7 @@ defineExpose({
 
 .medicine-panel__unit {
   position: relative;
-  flex: 0 0 auto;
+  flex: 0 0 56px;
 }
 
 .medicine-panel__unit-btn {
@@ -543,7 +591,7 @@ defineExpose({
   box-sizing: border-box;
   width: 56px;
   height: 32px;
-  padding: 0 12px;
+  padding: 7px 12px;
   border: 1px solid #d0d5d9;
   border-radius: 4px;
   color: #3c4449;
@@ -599,14 +647,37 @@ defineExpose({
   align-items: center;
   justify-content: center;
   width: 28px;
-  height: 28px;
+  height: 48px;
   padding: 0;
   border: 0;
-  color: #cb2c2c;
-  font-size: 16px;
-  line-height: 1;
   background: transparent;
   cursor: pointer;
+}
+
+.medicine-panel__remove > span {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+
+.medicine-panel__remove > span::before,
+.medicine-panel__remove > span::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 12px;
+  height: 1.5px;
+  border-radius: 1px;
+  background: #cb2c2c;
+  content: "";
+}
+
+.medicine-panel__remove > span::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.medicine-panel__remove > span::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .medicine-panel__remove:disabled {

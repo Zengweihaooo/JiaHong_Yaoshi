@@ -255,6 +255,8 @@ function closeDialog() {
   font-size: 14px;
   font-weight: 400;
   line-height: 24px;
+  text-wrap: pretty;
+  word-break: auto-phrase;
   background: #fff3e5;
 }
 
@@ -278,6 +280,8 @@ function closeDialog() {
   font-size: 14px;
   font-weight: 400;
   line-height: 24px;
+  text-wrap: pretty;
+  word-break: auto-phrase;
 }
 
 .diagnosis-confirm-dialog__tip-icon {
@@ -324,6 +328,8 @@ function closeDialog() {
   font-size: 14px;
   font-weight: 400;
   line-height: 22px;
+  text-wrap: pretty;
+  word-break: auto-phrase;
 }
 
 .diagnosis-confirm-group__tags {
@@ -399,7 +405,11 @@ function closeDialog() {
 }
 
 .diagnosis-confirm-dialog__submit:disabled {
-  opacity: 0.45;
+  border: 1px solid #d5dae0;
+  color: #8b96a3;
+  background: #e6e9ed;
+  box-shadow: none;
+  opacity: 1;
   cursor: not-allowed;
 }
 

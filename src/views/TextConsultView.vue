@@ -142,7 +142,12 @@
           </section>
 
           <aside v-if="isConvenientConsult" class="tc-video-sidebar" aria-label="视频问诊">
-            <img :src="convenientVideoImage" alt="视频问诊医生画面" />
+            <div class="tc-video-sidebar__pane tc-video-sidebar__pane--patient">
+              <img :src="patientVideoScreen" alt="患者视频画面" />
+            </div>
+            <div class="tc-video-sidebar__pane tc-video-sidebar__pane--doctor">
+              <img :src="doctorVideoScreen" alt="视频问诊医生画面" />
+            </div>
           </aside>
 
           <aside v-else class="tc-reminder" aria-label="用药提醒">
@@ -202,6 +207,8 @@ import { Button } from "@jiahong/ui";
 import cancelDialogCloseIcon from "@/assets/figma-text-consult/cancel-dialog-close.svg";
 import cancelConsultIcon from "@/assets/figma-text-consult/cancel-consult.svg";
 import doctorAvatarAsset from "@/assets/figma-text-consult/doctor-avatar.png";
+import doctorVideoScreen from "@/assets/figma-text-consult/video-doctor-screen.png";
+import patientVideoScreen from "@/assets/figma-text-consult/video-patient-screen.png";
 import prescriptionIcon from "@/assets/figma-text-consult/prescription.svg";
 import printPrescriptionIcon from "@/assets/figma-text-consult/print-prescription-messages.svg";
 import visitCardBg from "@/assets/figma-text-consult/visit-card-bg.png";
@@ -220,7 +227,6 @@ const chatScrollRef = ref(null);
 let followTimer;
 
 const doctorAvatar = doctorAvatarAsset;
-const convenientVideoImage = "https://www.figma.com/api/mcp/asset/eaa8174d-5163-4383-8063-943885643861";
 
 const mentalWarnings = [
   "近期出现情绪明显低落、焦虑加重、惊恐发作、失眠或异常兴奋",
@@ -255,7 +261,7 @@ const patientSummary = computed(() => {
   const info = visitInfo.value;
   const name = info.patientName || "黄黄";
   const gender = info.genderLabel || (info.gender === "male" ? "男" : "女");
-  const age = info.age ? `${info.age}岁` : "23岁";
+  const age = info.ageLabel || (info.age ? `${info.age}岁` : "23岁");
   return `${name}，${gender}，${age}`;
 });
 
@@ -464,6 +470,9 @@ onBeforeUnmount(() => {
 }
 
 .tc-shell__header :deep(.jh-btn) {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   height: 32px;
   padding: 5px 16px;
   border: 1px solid #d8dde1;
@@ -597,7 +606,7 @@ onBeforeUnmount(() => {
   display: flex;
   justify-content: flex-end;
   width: 384px;
-  height: 226px;
+  height: auto;
   min-height: 226px;
   margin: 0;
   /* 我方头像位于卡片右侧，不能被卡片边界裁切。 */
@@ -606,10 +615,9 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   background-image:
     linear-gradient(158.27deg, rgba(0, 111, 255, 0.032) 6.11%, rgba(0, 111, 255, 0) 28.73%),
-    linear-gradient(155.2deg, #fff 3.39%, rgba(255, 255, 255, 0.7) 96.62%),
-    var(--visit-card-bg);
-  background-position: center, center, -1px -8px;
-  background-size: 100% 100%, 100% 100%, 114.13% 108.91%;
+    linear-gradient(155.2deg, #fff 3.39%, rgba(255, 255, 255, 0.7) 96.62%);
+  background-position: center, center;
+  background-size: 100% 100%, 100% 100%;
   background-repeat: no-repeat;
   box-shadow: 0 6px 16px -8px rgba(16, 42, 67, 0.08), 0 1px 3px rgba(16, 42, 67, 0.05);
 }
@@ -620,7 +628,21 @@ onBeforeUnmount(() => {
   margin-right: 52px;
 }
 
-.tc-visit-card::before,
+.tc-visit-card::before {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  width: 132px;
+  height: 132px;
+  background-image: var(--visit-card-bg);
+  background-repeat: no-repeat;
+  background-position: right bottom;
+  background-size: contain;
+  pointer-events: none;
+  content: "";
+}
+
 .tc-visit-card::after {
   display: none;
   content: none;
@@ -630,7 +652,7 @@ onBeforeUnmount(() => {
   position: relative;
   z-index: 1;
   flex: 1;
-  padding: 21px 26px;
+  padding: 21px 26px 28px;
 }
 
 .tc-visit-card__title {
@@ -669,6 +691,7 @@ onBeforeUnmount(() => {
   color: rgba(0, 0, 0, 0.9);
   font-size: 12px;
   line-height: 20px;
+  word-break: break-word;
 }
 
 .tc-visit-card__badge {
@@ -1011,17 +1034,44 @@ onBeforeUnmount(() => {
 }
 
 .tc-video-sidebar {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
   border-left: 1px solid #e5e6eb;
   background: #f8f8fa;
 }
 
-.tc-video-sidebar img {
+.tc-video-sidebar__pane {
+  position: relative;
+  overflow: hidden;
+}
+
+.tc-video-sidebar__pane--patient {
+  flex: 0 0 362px;
+  height: 362px;
+}
+
+.tc-video-sidebar__pane--doctor {
+  flex: 1;
+  min-height: 358px;
+  background: #d8dde1;
+}
+
+.tc-video-sidebar__pane img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.tc-video-sidebar__pane--patient img {
+  object-position: 16% top;
+}
+
+.tc-video-sidebar__pane--doctor img {
+  object-position: center top;
 }
 
 .tc-reminder__intro h2 {
@@ -1358,8 +1408,9 @@ onBeforeUnmount(() => {
     padding: 22px 20px;
   }
 
-  .tc-video-sidebar img {
-    object-position: center top;
+  .tc-video-sidebar__pane--patient {
+    flex-basis: 320px;
+    height: 320px;
   }
 
   .tc-visit-card {

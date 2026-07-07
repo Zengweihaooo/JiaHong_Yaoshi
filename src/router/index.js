@@ -4,6 +4,7 @@ import RecordsView from "@/views/RecordsView.vue";
 import QuickConsultView from "@/views/QuickConsultView.vue";
 import NewProductView from "@/views/NewProductView.vue";
 import TextConsultView from "@/views/TextConsultView.vue";
+import ABTestView from "@/views/ABTestView.vue";
 
 export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -37,6 +38,16 @@ export const router = createRouter({
       name: "text-consult",
       component: TextConsultView,
       meta: { title: "图文问诊" }
+    },
+    {
+      path: "/ab-test",
+      redirect: "/ab-test/"
+    },
+    {
+      path: "/ab-test/",
+      name: "ab-test",
+      component: ABTestView,
+      meta: { title: "嘉虹健康药师端 AB 测试" }
     },
     {
       path: "/:pathMatch(.*)*",

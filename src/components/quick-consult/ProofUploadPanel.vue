@@ -1,7 +1,7 @@
 <template>
   <div class="proof-upload">
     <p class="proof-upload__subtitle">上传补充材料（2选1）</p>
-    <FormFieldError v-if="error" class="proof-upload__error" :message="error" />
+    <FormFieldError v-if="error && showInlineError" class="proof-upload__error" :message="error" />
 
     <div
       ref="voiceBtnWrapRef"
@@ -128,6 +128,10 @@ const props = defineProps({
   error: {
     type: String,
     default: ""
+  },
+  showInlineError: {
+    type: Boolean,
+    default: true
   }
 });
 

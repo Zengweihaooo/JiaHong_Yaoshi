@@ -162,7 +162,7 @@
         </div>
       </div>
 
-      <FormFieldError :message="error" />
+      <FormFieldError :message="showInlineError ? error : ''" />
     </div>
   </section>
 </template>
@@ -217,6 +217,10 @@ const props = defineProps({
     type: String,
     default: ""
   },
+  showInlineError: {
+    type: Boolean,
+    default: true
+  },
   maxCount: {
     type: Number,
     default: 5
@@ -224,6 +228,10 @@ const props = defineProps({
   isDisabled: {
     type: Function,
     default: () => false
+  },
+  showInlineLinkPrompt: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -239,7 +247,7 @@ const emit = defineEmits([
 
 const sectionRef = ref(null);
 const reachedMax = computed(() => props.diagnosisCards.length >= props.maxCount);
-const showLinkPrompt = computed(() => props.unlinkedMedicinePrompts.length > 0);
+const showLinkPrompt = computed(() => props.showInlineLinkPrompt && props.unlinkedMedicinePrompts.length > 0);
 
 function formatLinkedMedicines(linkedMedicines) {
   return formatLinkedMedicineNames(linkedMedicines);

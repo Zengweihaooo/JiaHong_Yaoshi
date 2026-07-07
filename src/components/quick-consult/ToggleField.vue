@@ -32,7 +32,7 @@
         />
       </div>
     </div>
-    <FormFieldError v-if="error" class="toggle-field__error" :message="error" />
+    <FormFieldError v-if="error && showInlineError" class="toggle-field__error" :message="error" />
   </div>
 </template>
 
@@ -55,6 +55,10 @@ defineProps({
   error: {
     type: String,
     default: ""
+  },
+  showInlineError: {
+    type: Boolean,
+    default: true
   }
 });
 
@@ -81,7 +85,7 @@ function handleDetailInput(value) {
 .toggle-field__buttons {
   display: flex;
   flex-shrink: 0;
-  gap: 8px;
+  gap: 12px;
   white-space: nowrap;
 }
 

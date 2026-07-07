@@ -1,57 +1,67 @@
 import { isValidIdCardNumber, isValidMainlandPhone } from "@/utils/idCard";
 
+export function createFieldIssue(message = "", type = "") {
+  return { message, type };
+}
+
 export function createEmptyFormErrors() {
   return {
-    patientName: "",
-    age: "",
-    phone: "",
-    idCard: "",
-    guardianName: "",
-    guardianIdCard: "",
-    proof: "",
-    allergyDetail: "",
-    liverDetail: "",
-    kidneyDetail: "",
-    diagnoses: "",
-    medicines: ""
+    patientName: createFieldIssue(),
+    age: createFieldIssue(),
+    phone: createFieldIssue(),
+    idCard: createFieldIssue(),
+    guardianName: createFieldIssue(),
+    guardianIdCard: createFieldIssue(),
+    proof: createFieldIssue(),
+    allergyDetail: createFieldIssue(),
+    liverDetail: createFieldIssue(),
+    kidneyDetail: createFieldIssue(),
+    diagnoses: createFieldIssue(),
+    medicines: createFieldIssue()
   };
 }
 
-export function validateAge(value) {
+export function validateAge(value, { unit = "year" } = {}) {
   const raw = String(value ?? "").trim();
   if (!raw) {
-    return "请输入年龄（0-120）";
+    return createFieldIssue("请输入年龄", "error");
   }
   if (!/^(0|[1-9]\d*)$/.test(raw)) {
-    return "年龄须为0-120之间的整数";
+    return createFieldIssue("请输入正确的年龄", "warning");
   }
   const age = Number(raw);
-  if (age < 0 || age > 120) {
-    return "请输入年龄（0-120）";
+  if (unit === "month") {
+    if (age < 1 || age > 11) {
+      return createFieldIssue("请输入1-11个月龄", "warning");
+    }
+    return createFieldIssue();
   }
-  return "";
+  if (age < 0 || age > 120) {
+    return createFieldIssue("请输入正确的年龄", "warning");
+  }
+  return createFieldIssue();
 }
 
 export function validatePhone(value, { required = false } = {}) {
   const phone = String(value || "").trim();
   if (!phone) {
-    return required ? "请输入正确的11位手机号" : "";
+    return required ? createFieldIssue("请输入手机号码", "error") : createFieldIssue();
   }
   if (!isValidMainlandPhone(phone)) {
-    return "请输入正确的11位手机号";
+    return createFieldIssue("请输入正确的11位手机号", "warning");
   }
-  return "";
+  return createFieldIssue();
 }
 
 export function validateIdCard(value, { required = false } = {}) {
   const idCard = String(value || "").trim();
   if (!idCard) {
-    return required ? "请输入正确的18位身份证号" : "";
+    return required ? createFieldIssue("请输入身份证号码", "error") : createFieldIssue();
   }
   if (!isValidIdCardNumber(idCard)) {
-    return "请输入正确的18位身份证号";
+    return createFieldIssue("请输入正确的身份证号码", "warning");
   }
-  return "";
+  return createFieldIssue();
 }
 
 export function validateQuickConsultForm({
@@ -59,48 +69,48 @@ export function validateQuickConsultForm({
   proofVoice,
   proofImages,
   isChildUnderSix,
-  canEditMedicine
+  canEditMedicine,
+  skipDiagnosesValidation = false
 }) {
   const errors = createEmptyFormErrors();
 
   if (!form.patientName.trim()) {
-    errors.patientName = "请输入姓名";
+    errors.patientName = createFieldIssue("请输入姓名", "error");
   }
 
-  errors.age = validateAge(form.age);
-
+  errors.age = validateAge(form.age, { unit: form.ageUnit });
   errors.phone = validatePhone(form.phone, { required: true });
   errors.idCard = validateIdCard(form.idCard, { required: true });
 
   if (isChildUnderSix) {
     if (!form.guardianName.trim()) {
-      errors.guardianName = "请输入姓名";
+      errors.guardianName = createFieldIssue("请输入姓名", "error");
     }
     errors.guardianIdCard = validateIdCard(form.guardianIdCard, { required: true });
   }
 
   if (!proofVoice && !proofImages.length) {
-    errors.proof = "请上传凭证";
+    errors.proof = createFieldIssue("请上传凭证", "error");
   }
 
   if (form.allergy === "yes" && !form.allergyDetail.trim()) {
-    errors.allergyDetail = "请填写过敏史";
+    errors.allergyDetail = createFieldIssue("请填写过敏史", "error");
   }
   if (form.liverAbnormal === "yes" && !form.liverDetail.trim()) {
-    errors.liverDetail = "请填写肝功能异常";
+    errors.liverDetail = createFieldIssue("请输入肝功能异常", "error");
   }
   if (form.kidneyAbnormal === "yes" && !form.kidneyDetail.trim()) {
-    errors.kidneyDetail = "请填写肾功能异常";
+    errors.kidneyDetail = createFieldIssue("请填写肾功能异常", "error");
   }
 
-  if (!form.diagnoses.length) {
-    errors.diagnoses = "请输入线下已确诊的疾病名称";
+  if (!skipDiagnosesValidation && !form.diagnoses.length) {
+    errors.diagnoses = createFieldIssue("请输入线下已确诊的疾病名称", "error");
   }
 
   if (canEditMedicine && !form.medicines.length) {
-    errors.medicines = "请您至少录入一条药品信息";
+    errors.medicines = createFieldIssue("请您至少录入一条药品信息", "error");
   }
 
-  const valid = !Object.values(errors).some(Boolean);
+  const valid = !Object.values(errors).some((issue) => issue.message);
   return { valid, errors };
 }

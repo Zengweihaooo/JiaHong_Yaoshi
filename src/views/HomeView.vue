@@ -1,6 +1,5 @@
 <template>
   <div class="home-page">
-    <!-- 容器保持 Figma 设计稿 1440×2807 比例，热区用百分比定位 -->
     <div class="home-page__canvas">
       <img
         class="home-page__image"
@@ -24,6 +23,8 @@
       :visible="showConsultTypeDialog"
       @close="showConsultTypeDialog = false"
     />
+
+    <button class="home-ab-entry" type="button" @click="goAbTest">AB 测试</button>
   </div>
 </template>
 
@@ -33,9 +34,11 @@ import { useRouter } from "vue-router";
 import ConsultTypeDialog from "@/components/home/ConsultTypeDialog.vue";
 import { useConsultStore } from "@/stores/consult";
 
-/** 首页 Figma 设计稿尺寸 */
-const DESIGN_W = 1440;
-const DESIGN_H = 2807;
+/** 首页截图尺寸（等比修正后：Figma 内容 1234×2407 对齐全页高 3951） */
+const DESIGN_W = 2026;
+const DESIGN_H = 3951;
+/** Figma 1440 画布 → 截图，统一等比缩放 */
+const SCALE = DESIGN_W / 1440;
 
 const router = useRouter();
 const consultStore = useConsultStore();
@@ -54,19 +57,34 @@ function goNewProduct() {
   router.push({ name: "new-product" });
 }
 
+function goAbTest() {
+  router.push({ name: "ab-test" });
+}
+
 function goQuickConsult(type = "western", source = "text") {
   consultStore.setConsultType(type);
   consultStore.setConsultSource(source);
   router.push({ name: "quick-consult", query: { type, source } });
 }
 
-/** 热区坐标基于首页截图本身（1440×2807），已去掉 Figma 画布 Y 偏移 */
+/**
+ * 热区坐标：Figma 1440 画布 → 2549 截图，统一等比缩放
+ */
+function spot(x, y, w, h) {
+  return {
+    x: Math.round(x * SCALE),
+    y: Math.round(y * SCALE),
+    w: Math.round(w * SCALE),
+    h: Math.round(h * SCALE)
+  };
+}
+
 const hotspots = [
-  { id: "nav-home", label: "首页", x: 222, y: 65, w: 100, h: 80, action: goHome },
-  { id: "nav-records", label: "问诊记录", x: 554, y: 65, w: 100, h: 80, action: goRecords },
-  { id: "nav-new-product", label: "新品登记", x: 958, y: 65, w: 100, h: 80, action: goNewProduct },
-  { id: "quick", label: "便民快速问诊", x: 1089, y: 163, w: 166, h: 100, action: () => goQuickConsult("western", "convenient") },
-  { id: "text", label: "图文问诊", x: 1263, y: 163, w: 166, h: 100, action: () => { showConsultTypeDialog.value = true; } }
+  { id: "nav-home", label: "首页", ...spot(222, 65, 100, 80), action: goHome },
+  { id: "nav-records", label: "问诊记录", ...spot(554, 65, 100, 80), action: goRecords },
+  { id: "nav-new-product", label: "新品登记", ...spot(958, 65, 100, 80), action: goNewProduct },
+  { id: "quick", label: "便民快速问诊", ...spot(1028, 138, 288, 86), action: () => goQuickConsult("western", "convenient") },
+  { id: "text", label: "图文快速问诊", ...spot(1028, 229, 288, 86), action: () => { showConsultTypeDialog.value = true; } }
 ];
 
 function spotStyle(spot) {
@@ -90,7 +108,7 @@ function spotStyle(spot) {
   position: relative;
   width: min(1234px, 100%);
   margin: 0 auto;
-  aspect-ratio: 1440 / 2807;
+  aspect-ratio: 2026 / 3951;
 }
 
 .home-page__image {
@@ -115,5 +133,31 @@ function spotStyle(spot) {
 .home-hotspot:focus-visible {
   outline: 2px solid var(--jh-color-primary);
   outline-offset: 1px;
+}
+
+.home-ab-entry {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 30;
+  height: 36px;
+  padding: 0 16px;
+  border: 1px solid #cfe3ff;
+  border-radius: 999px;
+  background: #ffffff;
+  color: var(--jh-color-primary, #006ef9);
+  box-shadow: 0 2px 8px rgba(16, 42, 67, 0.1);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.home-ab-entry:hover {
+  background: #f5f9ff;
+}
+
+.home-ab-entry:focus-visible {
+  outline: 2px solid var(--jh-color-primary);
+  outline-offset: 2px;
 }
 </style>
