@@ -484,7 +484,7 @@ onMounted(() => {
   position: absolute;
   inset: 0;
   z-index: 1;
-  background: transparent;
+  background: rgba(25, 35, 50, 0.48);
   pointer-events: none;
 }
 
@@ -494,27 +494,27 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 24px;
-  width: min(960px, calc(100vw - 96px));
-  padding: 0;
+  width: min(835px, calc(100vw - 96px));
+  padding: 48px 54px;
   border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 22px 54px rgba(16, 42, 67, 0.16);
 }
 
 .ab-select-card__intro {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .ab-select-card__title {
   margin: 0;
   color: #424751;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 400;
   line-height: 1.496;
-  letter-spacing: 1.5px;
+  letter-spacing: 0;
 }
 
 .ab-select-card__title strong {
@@ -524,15 +524,15 @@ onMounted(() => {
 .ab-select-card__subtitle {
   margin: 0;
   color: #424751;
-  font-size: 18px;
+  font-size: 16px;
   line-height: 1.496;
-  letter-spacing: 1.2px;
+  letter-spacing: 0;
 }
 
 .ab-select-card__options {
   display: flex;
   flex-wrap: nowrap;
-  gap: clamp(16px, 3vw, 43px);
+  gap: 46px;
 }
 
 .ab-select-option {
@@ -541,14 +541,14 @@ onMounted(() => {
   flex-direction: column;
   gap: 12px;
   min-width: 0;
-  min-height: 141px;
-  padding: 24px;
-  border: 1px solid rgba(0, 110, 249, 0.16);
-  border-radius: 14px;
+  min-height: 128px;
+  padding: 22px;
+  border: 1px solid #d8dde1;
+  border-radius: 8px;
   background: #ffffff;
   text-align: left;
   cursor: pointer;
-  box-shadow: 0 8px 24px rgba(16, 42, 67, 0.08);
+  box-shadow: none;
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
@@ -560,7 +560,7 @@ onMounted(() => {
 
 .ab-select-option__label {
   color: var(--jh-color-primary, #006ef9);
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   line-height: 1.302;
 }
@@ -568,11 +568,11 @@ onMounted(() => {
 .ab-select-option__desc {
   display: flex;
   align-items: flex-start;
-  gap: 14px;
+  gap: 10px;
   color: #424751;
-  font-size: 20px;
+  font-size: 18px;
   line-height: 1.4;
-  letter-spacing: 1.6px;
+  letter-spacing: 0;
 }
 
 .ab-select-option__text strong {
