@@ -82,81 +82,104 @@
         v-if="showLinkPrompt"
         :class="['diagnosis-panel__prompt', { 'diagnosis-panel__prompt--card': linkPromptLayout === 'card' }]"
       >
-        <div class="diagnosis-panel__prompt-header">
-          <div class="diagnosis-panel__prompt-header-main">
-            <span class="diagnosis-panel__prompt-icon" aria-hidden="true">!</span>
-            <p class="diagnosis-panel__prompt-title">每个或每组药品至少选择一个疾病信息</p>
-          </div>
-          <label
-            v-if="showComboMedicineOption"
-            class="diagnosis-panel__combo-toggle"
-          >
-            <input
-              :checked="comboEnabled"
-              class="diagnosis-panel__combo-input"
-              type="checkbox"
-              @change="emit('update:comboEnabled', $event.target.checked)"
-            />
-            <span class="diagnosis-panel__combo-box" aria-hidden="true">
-              <svg class="diagnosis-panel__combo-check" viewBox="0 0 10 8" fill="none">
-                <path
-                  d="M1 4.2L3.8 7L9 1"
-                  stroke="currentColor"
-                  stroke-width="1.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                />
-              </svg>
-            </span>
-            <span class="diagnosis-panel__combo-label">联合用药</span>
-          </label>
-        </div>
-
         <template v-if="linkPromptLayout === 'card'">
-          <article v-if="activeSlide" class="diagnosis-panel__prompt-card">
-            <p class="diagnosis-panel__prompt-label">{{ activeSlide.label }}</p>
-            <p class="diagnosis-panel__prompt-medicine">{{ activeSlide.namesJoined }}</p>
-            <div class="diagnosis-panel__prompt-tags">
-              <button
-                v-for="option in activeSlide.options"
-                :key="`${activeSlide.id}-${option.label}`"
-                :class="['diagnosis-panel__prompt-tag', { 'is-disabled': option.disabled }]"
-                type="button"
-                :disabled="option.disabled"
-                @mousedown.prevent
-                @click="emit('link-medicines', activeSlide.medicineIds, option.label)"
-              >
-                {{ option.label }}
-              </button>
-            </div>
-          </article>
+          <button
+            v-if="promptSlides.length > 1 && activeSlideIndex > 0"
+            class="diagnosis-panel__flip-nav diagnosis-panel__flip-nav--prev"
+            type="button"
+            aria-label="上一个药品"
+            @click="showPreviousSlide"
+          >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M10 3.5 5.5 8 10 12.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
 
-          <footer v-if="promptSlides.length > 1" class="diagnosis-panel__prompt-nav">
-            <span class="diagnosis-panel__prompt-nav-count">{{ activeSlideIndex + 1 }} / {{ promptSlides.length }}</span>
-            <div class="diagnosis-panel__prompt-nav-actions">
-              <button
-                class="diagnosis-panel__prompt-nav-btn"
-                type="button"
-                aria-label="上一个药品"
-                :disabled="activeSlideIndex === 0"
-                @click="showPreviousSlide"
-              >
-                ‹
-              </button>
-              <button
-                class="diagnosis-panel__prompt-nav-btn"
-                type="button"
-                aria-label="下一个药品"
-                :disabled="activeSlideIndex >= promptSlides.length - 1"
-                @click="showNextSlide"
-              >
-                ›
-              </button>
+          <div class="diagnosis-panel__flip-body">
+            <div class="diagnosis-panel__prompt-header">
+              <div class="diagnosis-panel__prompt-header-main">
+                <span class="diagnosis-panel__prompt-icon" aria-hidden="true">!</span>
+                <p class="diagnosis-panel__prompt-title">每个或每组药品至少选择一个疾病信息</p>
+              </div>
+              <span class="diagnosis-panel__flip-count">
+                第{{ activeSlideIndex + 1 }}项 / 共{{ promptSlides.length }}项
+              </span>
             </div>
-          </footer>
+
+            <div v-if="activeSlide" class="diagnosis-panel__flip-medicine">
+              <p class="diagnosis-panel__prompt-medicine">{{ activeSlide.namesJoined }}</p>
+              <div class="diagnosis-panel__prompt-tags">
+                <button
+                  v-for="option in activeSlide.options"
+                  :key="`${activeSlide.id}-${option.label}`"
+                  :class="['diagnosis-panel__prompt-tag', { 'is-disabled': option.disabled }]"
+                  type="button"
+                  :disabled="option.disabled"
+                  @mousedown.prevent
+                  @click="emit('link-medicines', activeSlide.medicineIds, option.label)"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            v-if="promptSlides.length > 1 && activeSlideIndex < promptSlides.length - 1"
+            class="diagnosis-panel__flip-nav diagnosis-panel__flip-nav--next"
+            type="button"
+            aria-label="下一个药品"
+            @click="showNextSlide"
+          >
+            <svg viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <path
+                d="M6 3.5 10.5 8 6 12.5"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
         </template>
 
         <template v-else>
+          <div class="diagnosis-panel__prompt-header">
+            <div class="diagnosis-panel__prompt-header-main">
+              <span class="diagnosis-panel__prompt-icon" aria-hidden="true">!</span>
+              <p class="diagnosis-panel__prompt-title">每个或每组药品至少选择一个疾病信息</p>
+            </div>
+            <label
+              v-if="showComboMedicineOption"
+              class="diagnosis-panel__combo-toggle"
+            >
+              <input
+                :checked="comboEnabled"
+                class="diagnosis-panel__combo-input"
+                type="checkbox"
+                @change="emit('update:comboEnabled', $event.target.checked)"
+              />
+              <span class="diagnosis-panel__combo-box" aria-hidden="true">
+                <svg class="diagnosis-panel__combo-check" viewBox="0 0 10 8" fill="none">
+                  <path
+                    d="M1 4.2L3.8 7L9 1"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              <span class="diagnosis-panel__combo-label">联合用药</span>
+            </label>
+          </div>
+
           <div
             v-if="comboEnabled && combinationRecommendations.length"
             class="diagnosis-panel__recommendations"
@@ -618,7 +641,7 @@ defineExpose({
 
 .diagnosis-panel__prompt-title {
   margin: 0;
-  color: #fe8125;
+  color: #e37318;
   font-size: 14px;
   line-height: 24px;
 }
@@ -678,66 +701,71 @@ defineExpose({
 }
 
 .diagnosis-panel__prompt--card {
-  gap: 12px;
-  padding: 12px 16px 10px;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
 }
 
-.diagnosis-panel__prompt-card {
+.diagnosis-panel__prompt--card .diagnosis-panel__prompt-tag {
+  border-color: #d8dde1;
+  color: rgba(0, 0, 0, 0.6);
+  background: #fcfcfc;
+}
+
+.diagnosis-panel__prompt--card .diagnosis-panel__prompt-tag:hover:not(:disabled) {
+  border-color: #d8dde1;
+  color: rgba(0, 0, 0, 0.6);
+  background: #f5f5f5;
+}
+
+.diagnosis-panel__flip-body {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+.diagnosis-panel__flip-count {
+  flex-shrink: 0;
+  color: #e37318;
+  font-size: 14px;
+  line-height: 24px;
+  white-space: nowrap;
+}
+
+.diagnosis-panel__flip-medicine {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-height: 108px;
-  padding: 12px 14px;
-  border: 1px solid rgba(227, 115, 24, 0.18);
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 2px 8px rgba(227, 115, 24, 0.08);
+  gap: 4px;
 }
 
-.diagnosis-panel__prompt-nav {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 12px;
-  margin-top: 2px;
-}
-
-.diagnosis-panel__prompt-nav-count {
-  color: rgba(0, 0, 0, 0.45);
-  font-size: 12px;
-  line-height: 20px;
-}
-
-.diagnosis-panel__prompt-nav-actions {
-  display: inline-flex;
-  gap: 8px;
-}
-
-.diagnosis-panel__prompt-nav-btn {
+.diagnosis-panel__flip-nav {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  align-self: stretch;
+  flex-shrink: 0;
+  width: 24px;
   padding: 0;
-  border: 1px solid #d8dde1;
-  border-radius: 6px;
-  color: #006ef9;
-  font-size: 18px;
-  line-height: 1;
-  background: #fff;
+  border: none;
+  color: #e37318;
+  background: #fae6d5;
   cursor: pointer;
+  transition: background 0.16s ease;
 }
 
-.diagnosis-panel__prompt-nav-btn:hover:not(:disabled) {
-  border-color: #006ef9;
-  background: #f5f9ff;
+.diagnosis-panel__flip-nav svg {
+  width: 16px;
+  height: 16px;
 }
 
-.diagnosis-panel__prompt-nav-btn:disabled {
-  color: #b8bec8;
-  cursor: not-allowed;
-  background: #f8f8f9;
+.diagnosis-panel__flip-nav:hover {
+  background: #f6d8be;
 }
 
 .diagnosis-panel__recommendations {

@@ -26,7 +26,8 @@
               class="ab-test-card__image"
               :src="item.preview"
               :alt="`${item.label} A 方案预览`"
-              loading="lazy"
+              loading="eager"
+              decoding="async"
             />
             <span v-else class="ab-test-card__placeholder">{{ item.label }}</span>
           </span>
@@ -130,12 +131,20 @@ const step = ref("landing");
 const variant = ref("a");
 const activeTestKey = ref("quick-consult");
 
+const previewAssetVersion = "2";
+
+function previewAsset(fileName) {
+  const base = import.meta.env.BASE_URL || "/";
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+  return `${normalizedBase}images/ab-test/${fileName}?v=${previewAssetVersion}`;
+}
+
 const testItems = [
-  { key: "quick-consult", label: "快速问诊页面", ready: true, preview: "/images/ab-test/quick-consult.png" },
-  { key: "quick-consult-form", label: "快速问诊表单", ready: true, preview: "/images/ab-test/quick-consult-form.png" },
-  { key: "quick-consult-consent", label: "知情同意书确认", ready: true, preview: "/images/ab-test/quick-consult-consent.png" },
-  { key: "quick-consult-name-dot", label: "姓名间隔点", ready: true, preview: "/images/ab-test/quick-consult-name-dot.png" },
-  { key: "records-date-picker", label: "问诊记录日期", ready: true, preview: "/images/ab-test/records-date-picker.png" }
+  { key: "quick-consult", label: "快速问诊页面", ready: true, preview: previewAsset("quick-consult.png") },
+  { key: "quick-consult-form", label: "快速问诊表单", ready: true, preview: previewAsset("quick-consult-form.png") },
+  { key: "quick-consult-consent", label: "知情同意书确认", ready: true, preview: previewAsset("quick-consult-consent.png") },
+  { key: "quick-consult-name-dot", label: "姓名间隔点", ready: true, preview: previewAsset("quick-consult-name-dot.png") },
+  { key: "records-date-picker", label: "问诊记录日期", ready: true, preview: previewAsset("records-date-picker.png") }
 ];
 
 const guideMap = {

@@ -14,7 +14,7 @@ export const medicineDiagnosisEntries = [
   },
   {
     id: "cold-ling",
-    keywords: ["感冒灵"],
+    keywords: ["感冒灵", "感冒片"],
     diagnoses: ["急性鼻咽炎 [感冒]", "急性咽喉炎", "急性扁桃体炎", "急性支气管炎"]
   },
   {

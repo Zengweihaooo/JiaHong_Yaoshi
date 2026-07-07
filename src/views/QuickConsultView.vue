@@ -1,5 +1,5 @@
 <template>
-  <div class="quick-consult-page">
+  <div :class="['quick-consult-page', { 'quick-consult-page--ab-figma-c': useAbFigmaVariantC }]">
     <header class="quick-consult-page__topbar">
       <Button class="quick-consult-page__back" variant="neutral" size="md" icon @click="handleBack">
         <el-icon class="quick-consult-page__back-icon" aria-hidden="true">
@@ -8,7 +8,7 @@
         <span>返回首页</span>
       </Button>
       <div class="quick-consult-page__topbar-right">
-        <Button variant="outline-secondary" size="md" @click="fillConsultTemplate">一键填入模板</Button>
+        <Button class="quick-consult-page__template" variant="outline-secondary" size="md" @click="fillConsultTemplate">一键填入模板</Button>
         <Button variant="primary" size="md">在线客服</Button>
         <span class="quick-consult-page__store">好药师大药房（九州通大厦店）</span>
       </div>
@@ -623,6 +623,8 @@ const showSeparateNameDot = computed(() => patientNameDotMode.value === "a");
 
 const showInlineNameDot = computed(() => patientNameDotMode.value === "b" && patientNameFocused.value);
 
+const useAbFigmaVariantC = computed(() => props.abMode && props.diagnosisLinkVariant === "c");
+
 const consultType = computed(() => route.query.type || consultStore.consultType || "western");
 const consultSource = computed(() => route.query.source || consultStore.consultSource || "text");
 const medicineTypePrefix = computed(() => {
@@ -631,7 +633,7 @@ const medicineTypePrefix = computed(() => {
   return "西药";
 });
 const medicinePlaceholder = computed(() => {
-  if (!patientBaseComplete.value || !guardianComplete.value) {
+  if (!useAbFigmaVariantC.value && (!patientBaseComplete.value || !guardianComplete.value)) {
     return "请将基本信息填写完整后再进行录药";
   }
   return `[${medicineTypePrefix.value}]请输入药品名称和规格，用空格分隔，最多可录入5个药品`;
@@ -717,7 +719,7 @@ const guardianComplete = computed(() => {
   return Boolean(form.guardianName.trim() && form.guardianIdCard.trim());
 });
 
-const canEditMedicine = computed(() => patientBaseComplete.value && guardianComplete.value);
+const canEditMedicine = computed(() => useAbFigmaVariantC.value || (patientBaseComplete.value && guardianComplete.value));
 const showPregnancyOptions = computed(() => form.gender === "female");
 const requiresIdentityInfo = computed(() => {
   const keyword = form.medicineKeyword.trim();
@@ -1554,6 +1556,84 @@ function setupFormValidationAbDemoState() {
 }
 
 function setupAbDemoState() {
+  if (useAbFigmaVariantC.value) {
+    removeProofVoice();
+    clearProofImages();
+
+    Object.assign(form, {
+      patientName: "",
+      gender: "female",
+      age: "",
+      ageUnit: "year",
+      weight: "",
+      phone: "",
+      idCard: "",
+      guardianName: "",
+      guardianIdCard: "",
+      allergy: "yes",
+      allergyDetail: "青霉素过敏",
+      liverAbnormal: "yes",
+      liverDetail: "转氨酶偏高",
+      kidneyAbnormal: "yes",
+      kidneyDetail: "肌酐偏高",
+      pregnancy: "none",
+      diagnosisKeyword: "",
+      diagnoses: ["认知障碍", "急性扁桃体炎"],
+      medicineKeyword: "",
+      medicines: [
+        {
+          id: "ab-c-medicine-escitalopram",
+          type: "western",
+          name: "草酸艾司西酞普兰片",
+          spec: "10mg*7片",
+          qty: 2,
+          unit: "盒",
+          linkedDiagnosis: null
+        },
+        {
+          id: "ab-c-medicine-cold",
+          type: "compound",
+          name: "感冒片",
+          spec: "0.5g*24片",
+          qty: 1,
+          unit: "盒",
+          linkedDiagnosis: null
+        },
+        {
+          id: "ab-c-medicine-clarithromycin",
+          type: "western",
+          name: "克拉霉素胶囊",
+          spec: "0.125g*10粒",
+          qty: 1,
+          unit: "盒",
+          linkedDiagnosis: null
+        }
+      ],
+      remark: "",
+      agreed: false
+    });
+
+    proofVoice.value = {
+      id: `ab-c-proof-${Date.now()}`,
+      name: "ab-c-proof.webm",
+      file: new File([new Blob(["mock-audio"])], "ab-c-proof.webm", { type: "audio/webm" }),
+      duration: 8
+    };
+
+    showValidation.value = false;
+    submitAttempted.value = false;
+    consentError.value = "";
+    Object.assign(formErrors, createEmptyFormErrors());
+    Object.keys(touchedFields).forEach((key) => {
+      delete touchedFields[key];
+    });
+    showDiagnosisDropdown.value = false;
+    showMedicineDropdown.value = false;
+    medicineFocused.value = false;
+    activeUnitMedicineId.value = null;
+    return;
+  }
+
   fillConsultTemplate();
 }
 
@@ -3282,6 +3362,142 @@ onBeforeUnmount(() => {
   font-size: 16px;
   font-weight: 700;
   line-height: 26px;
+}
+
+.quick-consult-page--ab-figma-c {
+  min-height: 900px;
+  background: #f4f5f6;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-page__topbar {
+  height: 56px;
+  padding: 0 24px;
+  border-bottom: 0;
+  box-shadow: 0 1px 0 rgba(16, 42, 67, 0.04);
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-page__template {
+  display: none;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-page__topbar :deep(.quick-consult-page__back) {
+  width: auto;
+  min-width: 88px;
+  padding: 5px 12px;
+  background: transparent;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-page__topbar-right {
+  gap: 16px;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-page__store {
+  padding-left: 4px;
+  color: rgba(0, 0, 0, 0.65);
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-page__main {
+  padding: 24px;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-card {
+  height: calc(100vh - 104px);
+  min-height: 740px;
+  max-height: 796px;
+  border-radius: 16px;
+  box-shadow: 0 4px 11.2px rgba(0, 0, 0, 0.15);
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-card__header {
+  padding: 0 48px;
+  background: #fcfcfc;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-card__title-row {
+  gap: 24px;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-card__body {
+  grid-template-columns: 604px 1fr;
+  height: calc(100% - 56px);
+  padding-bottom: 88px;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-card__col {
+  padding: 32px 48px 24px;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-card__col + .quick-consult-card__col {
+  padding-left: 23px;
+  padding-right: 48px;
+}
+
+.quick-consult-page--ab-figma-c .form-section + .form-section {
+  margin-top: 32px;
+}
+
+.quick-consult-page--ab-figma-c .form-grid {
+  gap: 12px 31px;
+}
+
+.quick-consult-page--ab-figma-c .form-grid--patient {
+  grid-template-columns: 1.47fr 1fr;
+  gap: 12px 20px;
+}
+
+.quick-consult-page--ab-figma-c .patient-info-fields,
+.quick-consult-page--ab-figma-c .patient-proof-fields {
+  gap: 12px;
+}
+
+.quick-consult-page--ab-figma-c .form-field__label,
+.quick-consult-page--ab-figma-c .jh-input-field,
+.quick-consult-page--ab-figma-c .patient-name-input,
+.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__input),
+.quick-consult-page--ab-figma-c :deep(.medicine-panel__input) {
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt--card) {
+  margin-top: 12px;
+  gap: 8px;
+  padding: 8px 16px 8px;
+  border: 1px solid #d8e9ff;
+  border-radius: 10px;
+  background: #f5f9ff;
+}
+
+.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-card) {
+  gap: 4px;
+  min-height: 72px;
+  padding: 8px 12px;
+  border-color: #cfe3ff;
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 110, 249, 0.08);
+}
+
+.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-label) {
+  line-height: 18px;
+}
+
+.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-medicine) {
+  line-height: 20px;
+}
+
+.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-nav) {
+  margin-top: 0;
+}
+
+.quick-consult-page--ab-figma-c :deep(.diagnosis-panel__prompt-nav-btn) {
+  width: 24px;
+  height: 24px;
+}
+
+.quick-consult-page--ab-figma-c .quick-consult-card__footer {
+  right: 48px;
+  bottom: 24px;
+  gap: 16px;
 }
 
 .consent-confirm-overlay {

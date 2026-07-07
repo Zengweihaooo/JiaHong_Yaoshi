@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projectRoot = path.resolve(__dirname, "..");
-const previewUrl = "http://localhost:5174/";
+const previewUrl = "http://localhost:5174/ab-test/";
 const debugPort = 9223;
 const chromeProfile = path.join(process.env.HOME || "", ".cursor", "jiahong-yaoshi-chrome-preview");
 const chromeBinary = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -47,13 +47,13 @@ function openChrome() {
   ).unref();
 }
 
-function reloadChrome() {
-  reloadViaCdp().catch((error) => {
+function reloadChrome({ hard = false } = {}) {
+  reloadViaCdp({ hard }).catch((error) => {
     console.warn("[preview] Chrome reload skipped:", error.message);
   });
 }
 
-async function reloadViaCdp() {
+async function reloadViaCdp({ hard = false } = {}) {
   const response = await fetch(`http://127.0.0.1:${debugPort}/json`);
   if (!response.ok) throw new Error("Chrome debug port unavailable");
 
@@ -65,20 +65,48 @@ async function reloadViaCdp() {
 
   await new Promise((resolve, reject) => {
     const ws = new WebSocket(target.webSocketDebuggerUrl);
+    let messageId = 0;
+    const pending = new Map();
+
+    const send = (method, params = {}) =>
+      new Promise((done) => {
+        const id = ++messageId;
+        pending.set(id, done);
+        ws.send(JSON.stringify({ id, method, params }));
+      });
+
     const timeout = setTimeout(() => {
       ws.close();
       resolve();
-    }, 1500);
+    }, 4000);
 
-    ws.addEventListener("open", () => {
-      ws.send(JSON.stringify({ id: 1, method: "Page.reload", params: { ignoreCache: false } }));
-    });
-    ws.addEventListener("message", (event) => {
-      const payload = JSON.parse(event.data);
-      if (payload.id === 1) {
+    ws.addEventListener("open", async () => {
+      try {
+        if (hard) {
+          await send("Network.enable");
+          await send("Network.clearBrowserCache");
+          const bustUrl = `${previewUrl}?_=${Date.now()}`;
+          await send("Page.navigate", { url: bustUrl });
+        } else {
+          await send("Page.reload", { ignoreCache: true });
+        }
+      } catch (error) {
         clearTimeout(timeout);
         ws.close();
-        resolve();
+        reject(error);
+        return;
+      }
+
+      clearTimeout(timeout);
+      ws.close();
+      resolve();
+    });
+
+    ws.addEventListener("message", (event) => {
+      const payload = JSON.parse(event.data);
+      if (payload.id && pending.has(payload.id)) {
+        pending.get(payload.id)(payload.result);
+        pending.delete(payload.id);
       }
     });
     ws.addEventListener("error", (error) => {
@@ -152,11 +180,12 @@ async function main() {
 
   if (await chromeIsRunning()) {
     console.log("[preview] refreshing existing Chrome preview window");
-    reloadChrome();
+    await reloadViaCdp({ hard: true });
   } else {
     console.log("[preview] opening persistent Chrome preview window");
     openChrome();
-    await new Promise((resolve) => setTimeout(resolve, 1200));
+    await new Promise((resolve) => setTimeout(resolve, 1800));
+    await reloadViaCdp({ hard: true });
   }
 
   watchProject();
