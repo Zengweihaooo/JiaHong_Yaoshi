@@ -59,6 +59,9 @@
   </section>
 
   <section v-else-if="step === 'select'" class="ab-select-stage" aria-label="AB 测试方案选择">
+    <img class="ab-select-stage__bg" :src="activeGuideImage" :alt="`${activeGuideName} 引导说明`" />
+    <div class="ab-select-stage__dim" aria-hidden="true"></div>
+
     <div class="ab-select-card">
       <div class="ab-select-card__intro">
         <h1 class="ab-select-card__title">
@@ -463,18 +466,40 @@ onMounted(() => {
   justify-content: center;
   padding: 40px;
   overflow: auto;
-  background: #f8f8f9;
+  background: #d7dbe1;
+}
+
+.ab-select-stage__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+.ab-select-stage__dim {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: transparent;
+  pointer-events: none;
 }
 
 .ab-select-card {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
-  gap: 30px;
-  width: min(920px, 100%);
-  padding: 54px;
-  border-radius: 12px;
-  background: #ffffff;
-  box-shadow: 0 18px 50px rgba(16, 42, 67, 0.1);
+  gap: 24px;
+  width: min(960px, calc(100vw - 96px));
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .ab-select-card__intro {
@@ -518,17 +543,18 @@ onMounted(() => {
   min-width: 0;
   min-height: 141px;
   padding: 24px;
-  border: 1px solid #e5e8eb;
+  border: 1px solid rgba(0, 110, 249, 0.16);
   border-radius: 14px;
   background: #ffffff;
   text-align: left;
   cursor: pointer;
+  box-shadow: 0 8px 24px rgba(16, 42, 67, 0.08);
   transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 }
 
 .ab-select-option:hover {
   border-color: var(--jh-color-primary, #006ef9);
-  box-shadow: 0 12px 28px -16px rgba(0, 110, 249, 0.5);
+  box-shadow: 0 14px 30px -14px rgba(0, 110, 249, 0.5);
   transform: translateY(-2px);
 }
 
