@@ -101,6 +101,7 @@
     v-else-if="step === 'test' && activeTestKey === 'quick-consult'"
     :variant="variant"
     @back="step = 'landing'"
+    @show-guide="step = 'guide'"
     @switch-variant="enterVariant"
   />
 
@@ -108,6 +109,7 @@
     v-else-if="step === 'test' && activeTestKey === 'quick-consult-form'"
     :variant="variant"
     @back="step = 'landing'"
+    @show-guide="step = 'guide'"
     @switch-variant="enterVariant"
   />
 
@@ -115,6 +117,7 @@
     v-else-if="step === 'test' && activeTestKey === 'quick-consult-consent'"
     :variant="variant"
     @back="step = 'landing'"
+    @show-guide="step = 'guide'"
     @switch-variant="enterVariant"
   />
 
@@ -122,6 +125,7 @@
     v-else-if="step === 'test' && activeTestKey === 'quick-consult-name-dot'"
     :variant="variant"
     @back="step = 'landing'"
+    @show-guide="step = 'guide'"
     @switch-variant="enterVariant"
   />
 
@@ -129,6 +133,7 @@
     v-else-if="step === 'test' && activeTestKey === 'records-date-picker'"
     :variant="variant"
     @back="step = 'landing'"
+    @show-guide="step = 'guide'"
     @switch-variant="enterVariant"
   />
 </template>

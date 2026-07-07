@@ -4,6 +4,7 @@
     <button type="button" :disabled="variant === 'a'" @click="$emit('switch-variant', 'a')">去 A 页面</button>
     <button type="button" :disabled="variant === 'b'" @click="$emit('switch-variant', 'b')">去 B 页面</button>
     <button type="button" @click="$emit('back')">返回测试首页</button>
+    <button class="ab-records-date-nav__help" type="button" aria-label="查看操作指引" title="查看操作指引" @click="$emit('show-guide')">?</button>
   </nav>
 </template>
 
@@ -18,7 +19,7 @@ defineProps({
   }
 });
 
-defineEmits(["back", "switch-variant"]);
+defineEmits(["back", "switch-variant", "show-guide"]);
 </script>
 
 <style scoped>
@@ -52,5 +53,15 @@ defineEmits(["back", "switch-variant"]);
   background: #f2f3f4;
   color: #99a1af;
   cursor: not-allowed;
+}
+
+.ab-records-date-nav .ab-records-date-nav__help {
+  width: 32px;
+  padding: 0;
+  border-color: #006ef9;
+  background: #006ef9;
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
 }
 </style>
