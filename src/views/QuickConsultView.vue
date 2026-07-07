@@ -341,6 +341,7 @@
               :diagnosis-cards="diagnosisCards"
               :unlinked-medicine-prompts="unlinkedMedicinePrompts"
               :show-inline-link-prompt="useInlineDiagnosisLink"
+              :link-prompt-layout="diagnosisLinkPromptLayout"
               :show-combo-medicine-option="showComboMedicineOption"
               :combination-recommendations="combinationRecommendations"
               :dropdown-options="diagnosisDropdownOptions"
@@ -521,7 +522,7 @@ const props = defineProps({
   diagnosisLinkVariant: {
     type: String,
     default: "",
-    validator: (value) => ["", "a", "b"].includes(value)
+    validator: (value) => ["", "a", "b", "c"].includes(value)
   },
   validationVariant: {
     type: String,
@@ -603,15 +604,15 @@ const maxDiagnoses = 5;
 const maxMedicines = 5;
 
 const useInlineDiagnosisLink = computed(() => {
-  if (props.diagnosisLinkVariant === "a") return true;
   if (props.diagnosisLinkVariant === "b") return false;
   return true;
 });
 
-const useDialogDiagnosisLink = computed(() => {
-  if (props.diagnosisLinkVariant === "a") return false;
-  if (props.diagnosisLinkVariant === "b") return true;
-  return true;
+const useDialogDiagnosisLink = computed(() => props.diagnosisLinkVariant === "b");
+
+const diagnosisLinkPromptLayout = computed(() => {
+  if (props.diagnosisLinkVariant === "c") return "card";
+  return "flat";
 });
 
 const consentDialogCentered = computed(() => props.consentVariant === "a");

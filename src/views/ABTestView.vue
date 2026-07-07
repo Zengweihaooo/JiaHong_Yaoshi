@@ -42,40 +42,40 @@
   </section>
 
   <section v-else-if="step === 'guide'" class="ab-guide-stage" aria-label="AB 测试引导">
-    <div class="ab-guide-stage__canvas">
-      <img class="ab-guide-stage__preview" :src="activeGuidePreview" :alt="`${activeGuide.name} A 方案预览`" />
-      <div class="ab-guide-stage__dim" aria-hidden="true"></div>
+    <img class="ab-guide-stage__preview" :src="activeGuidePreview" :alt="`${activeGuide.name} A 方案预览`" />
+    <div class="ab-guide-stage__dim" aria-hidden="true"></div>
 
-      <div
-        v-for="(hotspot, index) in activeHotspots"
-        :key="`hotspot-${index}`"
-        class="ab-guide-hotspot"
-        :style="hotspotStyle(hotspot.anchor)"
-      >
-        <span class="ab-guide-hotspot__ring" aria-hidden="true"></span>
-        <span class="ab-guide-hotspot__tag">{{ hotspot.labelText }}</span>
-      </div>
-    </div>
-
-    <section class="ab-guide-panel" aria-labelledby="ab-guide-title">
-      <h1 id="ab-guide-title">
+    <header class="ab-guide-float ab-guide-float--header">
+      <p class="ab-guide-float__eyebrow">测试项目：{{ activeGuide.name }}</p>
+      <h1>
         {{ activeGuide.titleBefore }}<strong>{{ activeGuide.primary }}</strong>{{ activeGuide.titleMiddle }}<strong>{{ activeGuide.secondary }}</strong>{{ activeGuide.titleAfter || "" }}
       </h1>
-      <p>测试项目：{{ activeGuide.name }}</p>
       <p>{{ activeGuide.desc }}</p>
-      <div class="ab-guide-panel__actions">
-        <button
-          v-for="option in activeGuide.options"
-          :key="option.key"
-          type="button"
-          @click="enterVariant(option.key)"
-        >
-          <strong>选项 {{ option.label }}</strong>
-          <span>{{ option.desc }}</span>
-        </button>
-      </div>
-      <button class="ab-guide-panel__back" type="button" @click="step = 'landing'">返回测试首页</button>
-    </section>
+    </header>
+
+    <div
+      v-for="(hotspot, index) in activeHotspots"
+      :key="`hotspot-${index}`"
+      class="ab-guide-hotspot"
+      :style="hotspotStyle(hotspot.anchor)"
+    >
+      <span class="ab-guide-hotspot__ring" aria-hidden="true"></span>
+      <span class="ab-guide-hotspot__tag">{{ hotspot.labelText }}</span>
+    </div>
+
+    <button
+      v-for="option in activeGuide.options"
+      :key="option.key"
+      class="ab-guide-float ab-guide-float--option"
+      type="button"
+      :style="cardStyle(option.card)"
+      @click="enterVariant(option.key)"
+    >
+      <strong>选项 {{ option.label }}</strong>
+      <span>{{ option.desc }}</span>
+    </button>
+
+    <button class="ab-guide-stage__back" type="button" @click="step = 'landing'">返回测试首页</button>
   </section>
 
   <ABQuickConsultTestView
@@ -145,19 +145,28 @@ const guideMap = {
     primary: "药品与疾病",
     titleMiddle: "关联",
     secondary: "展示方式",
-    desc: "请关注右侧「所需药品」区域：A 在页面内直接关联疾病，B 在点击提交后弹窗确认。",
+    desc: "请关注右侧「所需药品」区域：A 平铺展示、B 提交弹窗、C 卡片堆叠并可左右切换。",
     options: [
       {
         key: "a",
         label: "A",
         desc: "在页面中直接展示每个药品对应的疾病选项",
-        anchor: { top: 34, left: 51, width: 43, height: 34 }
+        anchor: { top: 34, left: 51, width: 43, height: 34 },
+        card: { top: 20, left: 30 }
       },
       {
         key: "b",
         label: "B",
         desc: "提交时以弹窗形式确认药品与疾病的对应关系",
-        anchor: { top: 76, left: 70, width: 16, height: 9 }
+        anchor: { top: 76, left: 70, width: 16, height: 9 },
+        card: { top: 60, left: 48 }
+      },
+      {
+        key: "c",
+        label: "C",
+        desc: "页面内以卡片展示单个药品病症，右下角可左右切换",
+        anchor: { top: 34, left: 51, width: 43, height: 34 },
+        card: { top: 52, left: 30 }
       }
     ]
   },
@@ -173,13 +182,15 @@ const guideMap = {
         key: "a",
         label: "A",
         desc: "可修改字段在下方提示，系统类错误在顶部提示（如暂无医生）",
-        anchor: { top: 30, left: 11, width: 24, height: 14 }
+        anchor: { top: 30, left: 11, width: 24, height: 14 },
+        card: { top: 42, left: 2 }
       },
       {
         key: "b",
         label: "B",
         desc: "所有校验错误统一在顶部堆叠提示，约 3 秒渐消上滑消失",
-        anchor: { top: 12, left: 24, width: 48, height: 11 }
+        anchor: { top: 12, left: 24, width: 48, height: 11 },
+        card: { top: 30, left: 62 }
       }
     ]
   },
@@ -195,13 +206,15 @@ const guideMap = {
         key: "a",
         label: "A",
         desc: "弹窗屏幕居中，取消与同意按钮水平居中",
-        anchor: { top: 36, left: 35, width: 30, height: 24 }
+        anchor: { top: 36, left: 35, width: 30, height: 24 },
+        card: { top: 24, left: 6 }
       },
       {
         key: "b",
         label: "B",
         desc: "弹窗靠近提交按钮右下，按钮右对齐",
-        anchor: { top: 68, left: 60, width: 30, height: 22 }
+        anchor: { top: 68, left: 60, width: 30, height: 22 },
+        card: { top: 48, left: 6 }
       }
     ]
   },
@@ -217,19 +230,22 @@ const guideMap = {
         key: "a",
         label: "A",
         desc: "间隔点按钮常驻在输入框右侧，随时可点击插入",
-        anchor: { top: 20, left: 9, width: 24, height: 9 }
+        anchor: { top: 20, left: 9, width: 24, height: 9 },
+        card: { top: 10, left: 36 }
       },
       {
         key: "b",
         label: "B",
         desc: "输入时输入框内显示间隔点按钮，输入完成后与输入框合并为单框",
-        anchor: { top: 20, left: 9, width: 24, height: 9 }
+        anchor: { top: 20, left: 9, width: 24, height: 9 },
+        card: { top: 28, left: 36 }
       },
       {
         key: "c",
         label: "C",
         desc: "无间隔点按钮，输入的非姓名字符自动转换为间隔点",
-        anchor: { top: 20, left: 9, width: 24, height: 9 }
+        anchor: { top: 20, left: 9, width: 24, height: 9 },
+        card: { top: 46, left: 36 }
       }
     ]
   },
@@ -245,13 +261,15 @@ const guideMap = {
         key: "a",
         label: "A",
         desc: "合并选择：一个日期范围选择器，可任意顺序点选起止日期",
-        anchor: { top: 15, left: 7, width: 30, height: 8 }
+        anchor: { top: 15, left: 7, width: 30, height: 8 },
+        card: { top: 6, left: 40 }
       },
       {
         key: "b",
         label: "B",
         desc: "分开选择：开始日期与结束日期各用一个独立选择器",
-        anchor: { top: 15, left: 7, width: 30, height: 8 }
+        anchor: { top: 15, left: 7, width: 30, height: 8 },
+        card: { top: 24, left: 40 }
       }
     ]
   }
@@ -288,6 +306,13 @@ function hotspotStyle(anchor) {
     left: `${anchor.left}%`,
     width: `${anchor.width}%`,
     height: `${anchor.height}%`
+  };
+}
+
+function cardStyle(card) {
+  return {
+    top: `${card.top}%`,
+    left: `${card.left}%`
   };
 }
 
@@ -477,17 +502,8 @@ onMounted(() => {
   position: fixed;
   inset: 0;
   z-index: 25;
-  display: flex;
-  flex-direction: column;
   overflow: hidden;
   background: #d7dbe1;
-}
-
-.ab-guide-stage__canvas {
-  position: relative;
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow: hidden;
 }
 
 .ab-guide-stage__preview {
@@ -503,6 +519,48 @@ onMounted(() => {
   inset: 0;
   background: rgba(0, 0, 0, 0.34);
   pointer-events: none;
+}
+
+.ab-guide-float {
+  position: absolute;
+  z-index: 4;
+}
+
+.ab-guide-float--header {
+  top: 20px;
+  left: 50%;
+  width: min(720px, calc(100vw - 48px));
+  padding: 18px 24px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 18px 50px rgba(16, 42, 67, 0.18);
+  transform: translateX(-50%);
+}
+
+.ab-guide-float__eyebrow {
+  margin: 0 0 8px;
+  color: #697383;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.ab-guide-float--header h1 {
+  margin: 0 0 8px;
+  color: #424751;
+  font-size: clamp(22px, 2.2vw, 30px);
+  font-weight: 400;
+  line-height: 1.35;
+}
+
+.ab-guide-float--header h1 strong {
+  font-weight: 700;
+}
+
+.ab-guide-float--header p:last-child {
+  margin: 0;
+  color: #697383;
+  font-size: 15px;
+  line-height: 24px;
 }
 
 .ab-guide-hotspot {
@@ -534,84 +592,57 @@ onMounted(() => {
   background: #006ef9;
 }
 
-.ab-guide-panel {
-  flex: 0 0 auto;
-  width: min(920px, calc(100vw - 72px));
-  margin: 0 auto;
-  padding: 24px 34px 28px;
-  border-radius: 12px 12px 0 0;
-  background: #ffffff;
-  box-shadow: 0 -10px 40px rgba(16, 42, 67, 0.14);
-}
-
-.ab-guide-panel h1 {
-  margin: 0 0 12px;
-  color: #424751;
-  font-size: clamp(24px, 2.2vw, 32px);
-  font-weight: 400;
-  line-height: 1.35;
-}
-
-.ab-guide-panel h1 strong {
-  font-weight: 700;
-}
-
-.ab-guide-panel p {
-  margin: 6px 0;
-  color: #697383;
-  font-size: 16px;
-  line-height: 26px;
-}
-
-.ab-guide-panel__actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.ab-guide-panel__actions button {
-  padding: 18px;
+.ab-guide-float--option {
+  display: block;
+  width: min(272px, 30vw);
+  padding: 16px 18px;
   border: 1px solid #e5e8eb;
   border-radius: 10px;
   background: #ffffff;
   text-align: left;
+  box-shadow: 0 12px 32px rgba(16, 42, 67, 0.14);
   cursor: pointer;
-  transition: border-color 160ms ease, background 160ms ease;
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
 }
 
-.ab-guide-panel__actions button:hover {
+.ab-guide-float--option:hover {
   border-color: var(--jh-color-primary, #006ef9);
   background: #f5f9ff;
+  transform: translateY(-2px);
 }
 
-.ab-guide-panel__actions strong {
+.ab-guide-float--option strong {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   color: var(--jh-color-primary, #006ef9);
-  font-size: 22px;
-  line-height: 28px;
+  font-size: 20px;
+  line-height: 26px;
 }
 
-.ab-guide-panel__actions span {
+.ab-guide-float--option span {
   color: #697383;
   font-size: 14px;
   line-height: 22px;
 }
 
-.ab-guide-panel__back {
-  margin-top: 18px;
+.ab-guide-stage__back {
+  position: fixed;
+  right: 32px;
+  bottom: 28px;
+  z-index: 5;
   height: 36px;
   padding: 0 16px;
   border: 1px solid #cfe3ff;
   border-radius: 999px;
-  background: #ffffff;
   color: var(--jh-color-primary, #006ef9);
+  background: #ffffff;
   cursor: pointer;
   font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(16, 42, 67, 0.06);
 }
 
-.ab-guide-panel__back:hover {
+.ab-guide-stage__back:hover {
   background: #f5f9ff;
 }
 
@@ -627,13 +658,14 @@ onMounted(() => {
 }
 
 @media (max-width: 960px) {
-  .ab-guide-panel {
-    width: calc(100vw - 32px);
-    padding: 18px 18px 22px;
+  .ab-guide-float--header {
+    top: 12px;
+    width: calc(100vw - 24px);
+    padding: 14px 16px;
   }
 
-  .ab-guide-panel__actions {
-    grid-template-columns: 1fr;
+  .ab-guide-float--option {
+    width: min(240px, 72vw);
   }
 }
 </style>

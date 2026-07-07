@@ -7,6 +7,7 @@
   <nav class="ab-quick-consult-nav" aria-label="AB 测试页面切换">
     <button type="button" :disabled="variant === 'a'" @click="$emit('switch-variant', 'a')">去 A 页面</button>
     <button type="button" :disabled="variant === 'b'" @click="$emit('switch-variant', 'b')">去 B 页面</button>
+    <button type="button" :disabled="variant === 'c'" @click="$emit('switch-variant', 'c')">去 C 页面</button>
     <button type="button" @click="$emit('back')">返回测试首页</button>
   </nav>
 </template>
@@ -18,7 +19,7 @@ defineProps({
   variant: {
     type: String,
     default: "a",
-    validator: (value) => ["a", "b"].includes(value)
+    validator: (value) => ["a", "b", "c"].includes(value)
   }
 });
 

@@ -80,7 +80,7 @@
 
       <div
         v-if="showLinkPrompt"
-        class="diagnosis-panel__prompt"
+        :class="['diagnosis-panel__prompt', { 'diagnosis-panel__prompt--card': linkPromptLayout === 'card' }]"
       >
         <div class="diagnosis-panel__prompt-header">
           <div class="diagnosis-panel__prompt-header-main">
@@ -112,54 +112,100 @@
           </label>
         </div>
 
-        <div
-          v-if="comboEnabled && combinationRecommendations.length"
-          class="diagnosis-panel__recommendations"
-        >
-          <div
-            v-for="recommendation in combinationRecommendations"
-            :key="`recommend-${recommendation.id}`"
-            class="diagnosis-panel__prompt-group diagnosis-panel__prompt-group--recommend"
-          >
-            <p class="diagnosis-panel__prompt-label">推荐联合用药</p>
-            <p class="diagnosis-panel__prompt-medicine">{{ recommendation.namesJoined }}</p>
+        <template v-if="linkPromptLayout === 'card'">
+          <article v-if="activeSlide" class="diagnosis-panel__prompt-card">
+            <p class="diagnosis-panel__prompt-label">{{ activeSlide.label }}</p>
+            <p class="diagnosis-panel__prompt-medicine">{{ activeSlide.namesJoined }}</p>
             <div class="diagnosis-panel__prompt-tags">
               <button
-                v-for="option in recommendation.options"
-                :key="`${recommendation.id}-${option.label}`"
+                v-for="option in activeSlide.options"
+                :key="`${activeSlide.id}-${option.label}`"
                 :class="['diagnosis-panel__prompt-tag', { 'is-disabled': option.disabled }]"
                 type="button"
                 :disabled="option.disabled"
                 @mousedown.prevent
-                @click="emit('link-medicines', recommendation.medicineIds, option.label)"
+                @click="emit('link-medicines', activeSlide.medicineIds, option.label)"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </article>
+
+          <footer v-if="promptSlides.length > 1" class="diagnosis-panel__prompt-nav">
+            <span class="diagnosis-panel__prompt-nav-count">{{ activeSlideIndex + 1 }} / {{ promptSlides.length }}</span>
+            <div class="diagnosis-panel__prompt-nav-actions">
+              <button
+                class="diagnosis-panel__prompt-nav-btn"
+                type="button"
+                aria-label="上一个药品"
+                :disabled="activeSlideIndex === 0"
+                @click="showPreviousSlide"
+              >
+                ‹
+              </button>
+              <button
+                class="diagnosis-panel__prompt-nav-btn"
+                type="button"
+                aria-label="下一个药品"
+                :disabled="activeSlideIndex >= promptSlides.length - 1"
+                @click="showNextSlide"
+              >
+                ›
+              </button>
+            </div>
+          </footer>
+        </template>
+
+        <template v-else>
+          <div
+            v-if="comboEnabled && combinationRecommendations.length"
+            class="diagnosis-panel__recommendations"
+          >
+            <div
+              v-for="recommendation in combinationRecommendations"
+              :key="`recommend-${recommendation.id}`"
+              class="diagnosis-panel__prompt-group diagnosis-panel__prompt-group--recommend"
+            >
+              <p class="diagnosis-panel__prompt-label">推荐联合用药</p>
+              <p class="diagnosis-panel__prompt-medicine">{{ recommendation.namesJoined }}</p>
+              <div class="diagnosis-panel__prompt-tags">
+                <button
+                  v-for="option in recommendation.options"
+                  :key="`${recommendation.id}-${option.label}`"
+                  :class="['diagnosis-panel__prompt-tag', { 'is-disabled': option.disabled }]"
+                  type="button"
+                  :disabled="option.disabled"
+                  @mousedown.prevent
+                  @click="emit('link-medicines', recommendation.medicineIds, option.label)"
+                >
+                  {{ option.label }}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-for="prompt in unlinkedMedicinePrompts"
+            :key="`medicine-${prompt.id}`"
+            class="diagnosis-panel__prompt-group"
+          >
+            <p class="diagnosis-panel__prompt-label">药品</p>
+            <p class="diagnosis-panel__prompt-medicine">{{ prompt.namesJoined }}</p>
+            <div class="diagnosis-panel__prompt-tags">
+              <button
+                v-for="option in prompt.options"
+                :key="`${prompt.id}-${option.label}`"
+                :class="['diagnosis-panel__prompt-tag', { 'is-disabled': option.disabled }]"
+                type="button"
+                :disabled="option.disabled"
+                @mousedown.prevent
+                @click="emit('link-medicines', prompt.medicineIds, option.label)"
               >
                 {{ option.label }}
               </button>
             </div>
           </div>
-        </div>
-
-        <div
-          v-for="prompt in unlinkedMedicinePrompts"
-          :key="`medicine-${prompt.id}`"
-          class="diagnosis-panel__prompt-group"
-        >
-          <p class="diagnosis-panel__prompt-label">药品</p>
-          <p class="diagnosis-panel__prompt-medicine">{{ prompt.namesJoined }}</p>
-          <div class="diagnosis-panel__prompt-tags">
-            <button
-              v-for="option in prompt.options"
-              :key="`${prompt.id}-${option.label}`"
-              :class="['diagnosis-panel__prompt-tag', { 'is-disabled': option.disabled }]"
-              type="button"
-              :disabled="option.disabled"
-              @mousedown.prevent
-              @click="emit('link-medicines', prompt.medicineIds, option.label)"
-            >
-              {{ option.label }}
-            </button>
-          </div>
-        </div>
+        </template>
       </div>
 
       <FormFieldError :message="showInlineError ? error : ''" />
@@ -168,7 +214,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import FormFieldError from "@/components/quick-consult/FormFieldError.vue";
 import { formatLinkedMedicineNames } from "@/utils/medicineDiagnosisLink";
 
@@ -232,6 +278,11 @@ const props = defineProps({
   showInlineLinkPrompt: {
     type: Boolean,
     default: true
+  },
+  linkPromptLayout: {
+    type: String,
+    default: "flat",
+    validator: (value) => ["flat", "card"].includes(value)
   }
 });
 
@@ -246,8 +297,62 @@ const emit = defineEmits([
 ]);
 
 const sectionRef = ref(null);
+const activeSlideIndex = ref(0);
 const reachedMax = computed(() => props.diagnosisCards.length >= props.maxCount);
 const showLinkPrompt = computed(() => props.showInlineLinkPrompt && props.unlinkedMedicinePrompts.length > 0);
+
+const promptSlides = computed(() => {
+  const slides = [];
+
+  if (props.linkPromptLayout !== "card") return slides;
+
+  if (props.comboEnabled && props.combinationRecommendations.length) {
+    props.combinationRecommendations.forEach((recommendation) => {
+      slides.push({
+        id: `recommend-${recommendation.id}`,
+        label: "推荐联合用药",
+        namesJoined: recommendation.namesJoined,
+        options: recommendation.options,
+        medicineIds: recommendation.medicineIds
+      });
+    });
+  }
+
+  props.unlinkedMedicinePrompts.forEach((prompt) => {
+    slides.push({
+      id: `medicine-${prompt.id}`,
+      label: "药品",
+      namesJoined: prompt.namesJoined,
+      options: prompt.options,
+      medicineIds: prompt.medicineIds
+    });
+  });
+
+  return slides;
+});
+
+const activeSlide = computed(() => promptSlides.value[activeSlideIndex.value] || null);
+
+watch(
+  () => promptSlides.value.map((slide) => slide.id).join("|"),
+  () => {
+    if (activeSlideIndex.value >= promptSlides.value.length) {
+      activeSlideIndex.value = Math.max(0, promptSlides.value.length - 1);
+    }
+  }
+);
+
+function showPreviousSlide() {
+  if (activeSlideIndex.value > 0) {
+    activeSlideIndex.value -= 1;
+  }
+}
+
+function showNextSlide() {
+  if (activeSlideIndex.value < promptSlides.value.length - 1) {
+    activeSlideIndex.value += 1;
+  }
+}
 
 function formatLinkedMedicines(linkedMedicines) {
   return formatLinkedMedicineNames(linkedMedicines);
@@ -570,6 +675,69 @@ defineExpose({
   color: rgba(0, 0, 0, 0.6);
   font-size: 14px;
   line-height: 22px;
+}
+
+.diagnosis-panel__prompt--card {
+  gap: 12px;
+  padding: 12px 16px 10px;
+}
+
+.diagnosis-panel__prompt-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 108px;
+  padding: 12px 14px;
+  border: 1px solid rgba(227, 115, 24, 0.18);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(227, 115, 24, 0.08);
+}
+
+.diagnosis-panel__prompt-nav {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.diagnosis-panel__prompt-nav-count {
+  color: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  line-height: 20px;
+}
+
+.diagnosis-panel__prompt-nav-actions {
+  display: inline-flex;
+  gap: 8px;
+}
+
+.diagnosis-panel__prompt-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid #d8dde1;
+  border-radius: 6px;
+  color: #006ef9;
+  font-size: 18px;
+  line-height: 1;
+  background: #fff;
+  cursor: pointer;
+}
+
+.diagnosis-panel__prompt-nav-btn:hover:not(:disabled) {
+  border-color: #006ef9;
+  background: #f5f9ff;
+}
+
+.diagnosis-panel__prompt-nav-btn:disabled {
+  color: #b8bec8;
+  cursor: not-allowed;
+  background: #f8f8f9;
 }
 
 .diagnosis-panel__recommendations {
